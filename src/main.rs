@@ -137,6 +137,19 @@ impl Zrs {
     }
 }
 
+extern "C" {
+    fn isal_shim_new() -> *mut core::ffi::c_void;
+    fn isal_shim_raw(s: *mut core::ffi::c_void, inp: *const u8, in_len: u32, out: *mut u8, out_len: u32) -> i64;
+}
+struct Isal(*mut core::ffi::c_void);
+impl Isal {
+    fn decode(&mut self, inp: &[u8], out: &mut [u8]) -> usize {
+        let n = unsafe { isal_shim_raw(self.0, inp.as_ptr(), inp.len() as u32, out.as_mut_ptr(), out.len() as u32) };
+        assert!(n >= 0, "isa-l failed");
+        n as usize
+    }
+}
+
 // ---- arms ------------------------------------------------------------------------------
 
 enum Arm {
@@ -145,6 +158,7 @@ enum Arm {
     Libdeflate(libdeflater::Decompressor),
     LibdeflateThreads(usize),
     ZlibNg(Zng),
+    Isal(Isal),
     ZlibRs(Zrs),
     Miniz(Box<miniz_oxide::inflate::core::DecompressorOxide>),
 }
@@ -167,6 +181,7 @@ fn arm(name: &str) -> Arm {
         "fast" => Arm::Fast(fast::Decoder::default()),
         "libdeflate" => Arm::Libdeflate(libdeflater::Decompressor::new()),
         "zlib-ng" => Arm::ZlibNg(Zng::new()),
+        "isal" => Arm::Isal(Isal(unsafe { isal_shim_new() })),
         "zlib-rs" => Arm::ZlibRs(Zrs::new()),
         "miniz" => Arm::Miniz(Box::default()),
         _ => panic!("unknown arm {name}"),
@@ -232,6 +247,11 @@ fn run(a: &mut Arm, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
             });
         }
         Arm::ZlibNg(z) => {
+            for (m, o) in ms.iter().zip(outs) {
+                assert_eq!(z.decode(&inp[m.body..m.end - 8], &mut o[..m.raw]), m.raw);
+            }
+        }
+        Arm::Isal(z) => {
             for (m, o) in ms.iter().zip(outs) {
                 assert_eq!(z.decode(&inp[m.body..m.end - 8], &mut o[..m.raw]), m.raw);
             }

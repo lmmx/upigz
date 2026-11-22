@@ -10,6 +10,9 @@ libz-ng-sys = "1"
 libz-rs-sys = "0"
 miniz_oxide = "0"
 
+[build-dependencies]
+cc = "1"
+
 [features]
 # Counts symbols, matches and copy shapes (one thread, step() instrumented); never timed
 census = []
