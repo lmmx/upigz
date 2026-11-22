@@ -1,6 +1,6 @@
 //! Paired, interleaved A/B over DEFLATE decoders, one thread.
 //!
-//! usage: inflate-ilp <file.gz> <reference-raw-file> <rounds> <arm,arm,...>
+//! usage: upigz <file.gz> <reference-raw-file> <rounds> <arm,arm,...>
 //!
 //! Members come from `<file.gz>.idx` ("comp_off comp_len raw_len" per line) when present,
 //! otherwise the file is one member. Every arm decodes every member's raw DEFLATE body into
