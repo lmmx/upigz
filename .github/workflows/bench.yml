@@ -1,33 +1,174 @@
-# The CI benchmark: GATED, a no-op until upigz has a CI bench harness and recipe.
+# The decoder benchmark: one gzip member decoded whole by upigz and the other gzip decoders,
+# in shuffled paired rounds on one runner (bench/ci_bench.py), in lmmx/mibz2's result shape
+# (bench/report.py).
 #
-# In lmmx/mibz2 this workflow builds a pull request's head and base and runs them as two arms
-# of one harness on one runner, in interleaved rounds, and posts the figures (its
-# bench/report.py) as one comment on the pull request. upigz has no such harness yet: its paired A/B is the
-# research host's `upigz <file.gz> <raw> <rounds> <arm,...>` mode and scripts/, which need
-# corpora this runner doesn't have. So the one job below only says so, and passes.
+# - A push to master: the commit's upigz against rapidgzip (at 1, 2 and 4 threads) and
+#   igzip, libdeflate, pigz and gzip (at 1 thread), its result kept on the bench-results
+#   branch (a data-only branch, never merged; nothing is committed to master). The site's
+#   benchmark pages are built from it (site.yml, docs/scripts/bench_history.py).
+# - From the Actions tab: any ref, as on master. `commits` (space-separated SHAs of master)
+#   records those commits instead, one after another: a backfill.
+# - Pull requests aren't benchmarked yet: mibz2's head-against-base pairing
+#   (bench/links.py) is the next step.
 #
-# Lifting the gate (docs/team/SETUP-TODO.md item 5): a harness that builds both arms, a pinned
-# corpus with its SHA-256s, and a report of its records (mibz2's bench/report.py is the model). Until then, timing
-# evidence is a registered workstation recipe (RULES C5; docs/team/research-charter/README.md).
+# The workload: the first 256 MiB of the dated Wikidata JSON dump of 2026-11-16, whole lines,
+# compressed as one member with `gzip -6 -n` (bench/ci_corpus.py, its SHA-256 pinned). It is
+# built from a byte range of the dump once and then kept on the bench-data branch, since a
+# dated dump leaves Wikimedia after a few months.
 name: Benchmark
 
 on:
-  pull_request:
+  push:
+    branches: [master]
     paths:
       - "src/**"
       - "Cargo.toml"
       - "Cargo.lock"
-      - "bench/**"
+      - "build.rs"
+      - "csrc/**"
+      - "rust-toolchain.toml"
+      - "bench/ci_bench.py"
+      - "bench/ci_corpus.py"
+      - "bench/report.py"
       - ".github/workflows/bench.yml"
   workflow_dispatch:
+    inputs:
+      commits:
+        description: "Master commits to record, space-separated (empty: the ref run from)"
+        required: false
+      record:
+        description: "Record the result on bench-results (master's commits only)"
+        type: boolean
+        default: false
+
+# master's runs each make a record; one at a time, so the records append in order
+concurrency:
+  group: bench-master
+  cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write # (the bench-results and bench-data branches)
+
+env:
+  ROUNDS: 10
+  RAPIDGZIP: "0.16.2"
+  CORPUS: wd-256
+  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  CARGO_TERM_COLOR: never
 
 jobs:
   bench:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
-      - name: Gated
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Decoders
         run: |
-          echo "The CI benchmark is gated: upigz has no CI bench harness yet (see this workflow's header)." | tee -a "$GITHUB_STEP_SUMMARY"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libisal-dev isal libdeflate-tools pigz > /dev/null
+          python3 -m venv /tmp/rg && /tmp/rg/bin/pip install -q "rapidgzip==${RAPIDGZIP}"
+          echo "RG=/tmp/rg/bin/rapidgzip" >> "$GITHUB_ENV"
+          for t in igzip libdeflate-gunzip pigz gzip /tmp/rg/bin/rapidgzip; do command -v "$t"; done
+
+      - uses: dtolnay/rust-toolchain@1.99.1
+
+      # the corpus: from the bench-data branch, else rebuilt from Wikimedia (and kept there)
+      - name: Corpus
+        run: |
+          mkdir -p corpus
+          if git fetch -q origin bench-data:refs/remotes/origin/bench-data 2>/dev/null \
+             && git cat-file -e "origin/bench-data:${CORPUS}.json.gz" 2>/dev/null; then
+            git show "origin/bench-data:${CORPUS}.json.gz" > "corpus/${CORPUS}.json.gz"
+            gzip -dc "corpus/${CORPUS}.json.gz" > "corpus/${CORPUS}.json"
+            want=$(sed -nE 's/^RAW_SHA256 = "([0-9a-f]+)"$/\1/p' bench/ci_corpus.py)
+            echo "${want}  corpus/${CORPUS}.json" | sha256sum -c -
+            echo "CORPUS_SOURCE=kept" >> "$GITHUB_ENV"
+          else
+            python3 bench/ci_corpus.py build corpus
+            echo "CORPUS_SOURCE=wikimedia" >> "$GITHUB_ENV"
+          fi
+          ls -l corpus
+
+      - name: Commits
+        env:
+          INPUT_COMMITS: ${{ inputs.commits }}
+          INPUT_RECORD: ${{ inputs.record }}
+        run: |
+          commits=${INPUT_COMMITS:-$(git rev-parse HEAD)}
+          for c in $commits; do git rev-parse -q --verify "$c^{commit}" > /dev/null || { echo "::error::no commit $c"; exit 1; }; done
+          echo "COMMITS=$(for c in $commits; do git rev-parse "$c"; done | tr '\n' ' ')" >> "$GITHUB_ENV"
+          if [ "$GITHUB_EVENT_NAME" = push ] || [ "$INPUT_RECORD" = true ]; then record=1; else record=0; fi
+          echo "RECORD=$record" >> "$GITHUB_ENV"
+          # the harness is this checkout's, whichever commit's decoder it runs
+          cp -r bench /tmp/harness
+
+      - name: Run
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          for c in $COMMITS; do
+            git -c advice.detachedHead=false checkout -q "$c"
+            cargo build --release --locked -q
+            cp target/release/upigz "/tmp/upigz-$c"
+            git checkout -q -
+            python3 /tmp/harness/ci_bench.py run "results/$c" \
+              --corpus "corpus/${CORPUS}.json.gz" --raw "corpus/${CORPUS}.json" \
+              --upigz "/tmp/upigz-$c" --rapidgzip "$RG" --rounds "$ROUNDS" \
+              --head "$c" --run "$RUN_URL"
+            cat "results/$c/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Results
+        if: "!cancelled()"
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ github.run_id }}
+          path: results
+          if-no-files-found: ignore
+
+      # master only: each commit's result appended to the bench-results branch, and the
+      # corpus kept on the bench-data branch if it was rebuilt from Wikimedia
+      - name: Record
+        if: success() && env.RECORD == '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # (a data-only branch, checked out beside the code: its last commit, or a new one)
+          open_branch() {
+            if git fetch -q origin "$1:refs/remotes/origin/$1" 2>/dev/null; then
+              git worktree add -q --detach "$2" "origin/$1"
+            else
+              git worktree add -q --orphan -b "$1" "$2"
+            fi
+          }
+          push_branch() {
+            for try in 1 2 3; do
+              git -C "$2" push -q origin "HEAD:$1" && return 0
+              git -C "$2" fetch -q origin "$1" && git -C "$2" rebase -q FETCH_HEAD
+            done
+            return 1
+          }
+          git fetch -q origin master
+          open_branch bench-results .store
+          for c in $COMMITS; do
+            git merge-base --is-ancestor "$c" origin/master || { echo "::warning::$c is not on master: not recorded"; continue; }
+            python3 /tmp/harness/report.py record .store "results/$c/result.json" "results/$c/raw.jsonl"
+            git -C .store add -A
+            git -C .store commit -qm "record bench: ${c::7}, bench $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["bench"])' "results/$c/result.json")"
+          done
+          push_branch bench-results .store
+          if [ "$CORPUS_SOURCE" != kept ]; then
+            open_branch bench-data .data
+            cp "corpus/${CORPUS}.json.gz" .data/
+            printf '# Benchmark data\n\nData only, never merged: the CI benchmark'"'"'s corpus, `%s.json.gz`, as\n`bench/ci_corpus.py` builds it (its decoded SHA-256 is pinned there).\n' "$CORPUS" > .data/README.md
+            git -C .data add -A
+            if git -C .data diff --cached --quiet; then
+              echo "bench-data already holds the corpus"
+            else
+              git -C .data commit -qm "bench data: ${CORPUS}.json.gz"
+              push_branch bench-data .data
+            fi
+          fi

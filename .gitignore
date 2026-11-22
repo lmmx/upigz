@@ -19,3 +19,7 @@ dist/
 /site/
 /site-shots/
 /docs/generated/
+
+# The benchmark pages' generated data (docs/scripts/bench_history.py)
+/docs/site/assets/bench-history.json
+/docs/site/assets/alternatives.json

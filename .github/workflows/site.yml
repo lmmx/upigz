@@ -2,7 +2,11 @@ name: Documentation site
 
 # Builds the site (docs/site/, zensical.toml) and publishes it to GitHub Pages from the gh-pages
 # branch. Adapted from lmmx/mibz2's site.yml, less its benchmark-history data, its API
-# reference and its page screenshots (`look`), which upigz doesn't have yet.
+# reference and its page screenshots (`look`), which upigz doesn't have yet. The benchmark
+# history: the benchmark pages read data that the build makes from the bench-results branch
+# (docs/scripts/bench_history.py: master's records only). The Benchmark workflow pushes
+# records there and nothing else, so each completed Benchmark run on master builds and
+# deploys the site again (workflow_run).
 #
 # Production (pushes to master) goes to the root of gh-pages, served at
 # https://lmmx.github.io/upigz/ once the repository's Pages source is set to "Deploy from a
@@ -24,7 +28,12 @@ on:
       - "docs/overrides/**"
       - "docs/scripts/**"
       - "docs/site/**"
+      - "bench/report.py"
       - "zensical.toml"
+  workflow_run:
+    workflows: [Benchmark]
+    types: [completed]
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -66,7 +75,17 @@ jobs:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
+      # Master's history for the benchmark history's commits (their order, dates and
+      # subjects): every commit, no file contents but the checkout's
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          filter: blob:none
+      # The benchmark's records (data only): none yet before master's first Benchmark run
+      - name: Benchmark history
+        run: |
+          git fetch -q origin bench-results:refs/remotes/origin/bench-results || echo "no bench-results branch yet"
+          python3 docs/scripts/bench_history.py
       - uses: astral-sh/setup-uv@v8.1.0
       - name: Version the site's own assets
         run: sed -i "s|?v=dev\"|?v=${GITHUB_SHA::12}\"|" zensical.toml
@@ -93,7 +112,7 @@ jobs:
 
   # Production, on the gh-pages branch (created by the first run).
   deploy-branch:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || github.event_name == 'workflow_run')
     needs: build
     runs-on: ubuntu-latest
     concurrency:
