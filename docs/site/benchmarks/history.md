@@ -26,8 +26,16 @@ machinery, the records' layout and these charts are lmmx/mibz2's.
 - **A line never joins** another bench meaning (a version that redefined the figures;
   [the benchmark's changelog](https://github.com/lmmx/upigz/blob/master/bench/CHANGELOG.md))
   or another content of a corpus.
-- **Not yet:** pull requests' own paired runs, head against base, chained merge by merge,
-  as in mibz2's history. Until they run, the chart has master's records only.
+- **Merge by merge, chained** (the chart at the top). Each pull request's benchmark runs its
+  head against its base on one runner, both builds, for 10 rounds in a shuffled order. Each
+  merge keeps that paired change ([`bench/links.py`](https://github.com/lmmx/upigz/blob/master/bench/links.py)),
+  and the chart multiplies the changes. The band is the product's 95% interval. Merges from
+  before pull requests were benchmarked are backfilled: the merge against its first parent,
+  run the same way. A merge that left the decoder alone is an A/A pair, drawn hollow, and
+  adds nothing.
+- **Absolute figures** (the charts below it) are master's records: each merge's upigz in
+  MB/s, CPU seconds and peak RSS, on whichever runner the run drew. The backfilled merges
+  share one runner, so they are directly comparable.
 
 <div id="bench-history" data-src="../../assets/bench-history.json" markdown>
 Loading the benchmark history…

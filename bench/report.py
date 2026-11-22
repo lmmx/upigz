@@ -46,6 +46,10 @@ def t(df: int) -> float:
     return T975[min((k for k in T975 if k >= df), default=120)]
 
 
+# (mibz2's name for it, which docs/scripts/bench_history.py calls)
+t95 = t
+
+
 def mean_ci(values: list[float]) -> tuple[float, float]:
     """The mean and the half-width of its 95% t interval (0 for one value)."""
     m = statistics.fmean(values)
@@ -117,8 +121,9 @@ Data only, never merged: master's benchmark results (`.github/workflows/bench.ym
 - `runs/<commit>.json`: its result: every figure, the machine, the toolchain and the corpora's
   sizes and SHA-256.
 - `raw/<commit>.jsonl`: the harness's records, one line a run.
-- `links.jsonl`: merged pull requests' own paired runs (bench/links.py), once upigz's
-  Benchmark workflow runs pull requests head against base.
+- `links.jsonl`, `pr/<commit>.json`, `pr-raw/<commit>.jsonl`: each merged pull request's own
+  paired run, head against base (bench/links.py): a link of the history's chain. Merges from
+  before the pull request runs are linked by a backfill, their merge against its first parent.
 
 A master record's figure compares only within the bench major that last set its meaning
 (MEANING in bench/report.py), one runner CPU model and one set of corpora.

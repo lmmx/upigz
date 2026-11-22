@@ -2,14 +2,19 @@
 # in shuffled paired rounds on one runner (bench/ci_bench.py), in lmmx/mibz2's result shape
 # (bench/report.py).
 #
+# - A pull request: its head against its base (the merge base with master), both built here
+#   and run as two arms (`upigz` and `upigz@base`) of one harness, at 1, 2 and 4 threads, in
+#   an order shuffled each round. Its figures are the run's summary and its artifact
+#   (`bench-pr-<head>`), which bench-links.yml keeps, once the pull request merges, as a link
+#   of the history's chain (bench/links.py). Nothing else from a pull request is recorded.
 # - A push to master: the commit's upigz against rapidgzip (at 1, 2 and 4 threads) and
 #   igzip, libdeflate, pigz and gzip (at 1 thread), its result kept on the bench-results
 #   branch (a data-only branch, never merged; nothing is committed to master). The site's
 #   benchmark pages are built from it (site.yml, docs/scripts/bench_history.py).
-# - From the Actions tab: any ref, as on master. `commits` (space-separated SHAs of master)
-#   records those commits instead, one after another: a backfill.
-# - Pull requests aren't benchmarked yet: mibz2's head-against-base pairing
-#   (bench/links.py) is the next step.
+# - From the Actions tab, `backfill`: master merges (space-separated SHAs), each measured as
+#   on master and recorded, and each whose subject names its pull request `(#N)` also run
+#   against its first parent and linked (`bench/links.py add`), as if its pull request had
+#   been benchmarked: the history's chain for merges from before this workflow ran.
 #
 # The workload: the first 256 MiB of the dated Wikidata JSON dump of 2026-11-16, whole lines,
 # compressed as one member with `gzip -6 -n` (bench/ci_corpus.py, its SHA-256 pinned). It is
@@ -18,6 +23,19 @@
 name: Benchmark
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "build.rs"
+      - "csrc/**"
+      - "rust-toolchain.toml"
+      - "bench/ci_bench.py"
+      - "bench/ci_corpus.py"
+      - "bench/report.py"
+      - ".github/workflows/bench.yml"
   push:
     branches: [master]
     paths:
@@ -33,21 +51,18 @@ on:
       - ".github/workflows/bench.yml"
   workflow_dispatch:
     inputs:
-      commits:
-        description: "Master commits to record, space-separated (empty: the ref run from)"
+      backfill:
+        description: "Master merges to record and link, space-separated (empty: the ref run from, as on master, not recorded)"
         required: false
-      record:
-        description: "Record the result on bench-results (master's commits only)"
-        type: boolean
-        default: false
 
-# master's runs each make a record; one at a time, so the records append in order
+# A push to a pull request cancels its run in progress; master's runs each make a record, one
+# at a time, so the records append in order
 concurrency:
-  group: bench-master
-  cancel-in-progress: false
+  group: bench-${{ github.event.pull_request.number || 'master' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
-  contents: write # (the bench-results and bench-data branches)
+  contents: write # (master: the bench-results and bench-data branches)
 
 env:
   ROUNDS: 10
@@ -92,34 +107,77 @@ jobs:
           fi
           ls -l corpus
 
-      - name: Commits
+      # each job: a head, a base ("" for figures against the alternatives) and whether it is recorded
+      - name: Jobs
         env:
-          INPUT_COMMITS: ${{ inputs.commits }}
-          INPUT_RECORD: ${{ inputs.record }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          INPUT_BACKFILL: ${{ inputs.backfill }}
         run: |
-          commits=${INPUT_COMMITS:-$(git rev-parse HEAD)}
-          for c in $commits; do git rev-parse -q --verify "$c^{commit}" > /dev/null || { echo "::error::no commit $c"; exit 1; }; done
-          echo "COMMITS=$(for c in $commits; do git rev-parse "$c"; done | tr '\n' ' ')" >> "$GITHUB_ENV"
-          if [ "$GITHUB_EVENT_NAME" = push ] || [ "$INPUT_RECORD" = true ]; then record=1; else record=0; fi
-          echo "RECORD=$record" >> "$GITHUB_ENV"
-          # the harness is this checkout's, whichever commit's decoder it runs
+          set -euo pipefail
+          git fetch -q origin master
+          : > jobs.txt
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              git fetch -q origin "$PR_HEAD" "$PR_BASE" 2>/dev/null || true
+              echo "$PR_HEAD $(git merge-base "$PR_BASE" "$PR_HEAD") 0" >> jobs.txt ;;
+            push) echo "$(git rev-parse HEAD) - 1" >> jobs.txt ;;
+            *)
+              if [ -z "$INPUT_BACKFILL" ]; then echo "$(git rev-parse HEAD) - 0" >> jobs.txt; fi
+              for c in $INPUT_BACKFILL; do
+                c=$(git rev-parse "$c^{commit}")
+                git merge-base --is-ancestor "$c" origin/master || { echo "::error::$c is not on master"; exit 1; }
+                echo "$c - 1" >> jobs.txt
+                if git show -s --format=%s "$c" | grep -qE '\(#[0-9]+\)\s*$' && git rev-parse -q --verify "$c^1" > /dev/null; then
+                  echo "$c $(git rev-parse "$c^1") 1" >> jobs.txt
+                fi
+              done ;;
+          esac
+          cat jobs.txt
+          # the harness is this checkout's, whichever commits' decoders it runs
           cp -r bench /tmp/harness
 
       - name: Run
         run: |
           set -euo pipefail
-          mkdir -p results
-          for c in $COMMITS; do
-            git -c advice.detachedHead=false checkout -q "$c"
-            cargo build --release --locked -q
-            cp target/release/upigz "/tmp/upigz-$c"
+          build() {
+            [ -x "/tmp/upigz-$1" ] && return 0
+            git -c advice.detachedHead=false checkout -q "$1"
+            cargo build --release -q
+            cp target/release/upigz "/tmp/upigz-$1"
             git checkout -q -
-            python3 /tmp/harness/ci_bench.py run "results/$c" \
-              --corpus "corpus/${CORPUS}.json.gz" --raw "corpus/${CORPUS}.json" \
-              --upigz "/tmp/upigz-$c" --rapidgzip "$RG" --rounds "$ROUNDS" \
-              --head "$c" --run "$RUN_URL"
-            cat "results/$c/summary.md" >> "$GITHUB_STEP_SUMMARY"
-          done
+          }
+          mkdir -p results
+          while read -r head base record; do
+            build "$head"
+            if [ "$base" = - ]; then
+              out="results/$head"
+              python3 /tmp/harness/ci_bench.py run "$out" \
+                --corpus "corpus/${CORPUS}.json.gz" --raw "corpus/${CORPUS}.json" \
+                --upigz "/tmp/upigz-$head" --rapidgzip "$RG" --rounds "$ROUNDS" \
+                --head "$head" --run "$RUN_URL"
+            else
+              build "$base"
+              out="results/pr-$head"
+              python3 /tmp/harness/ci_bench.py run "$out" \
+                --corpus "corpus/${CORPUS}.json.gz" --raw "corpus/${CORPUS}.json" \
+                --upigz "/tmp/upigz-$head" --base-upigz "/tmp/upigz-$base" --rounds "$ROUNDS" \
+                --head "$head" --base "$base" --run "$RUN_URL"
+            fi
+            cat "$out/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          done < jobs.txt
+
+      # a pull request's paired result, for bench-links.yml once it merges
+      - name: Pull request result
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-pr-${{ github.event.pull_request.head.sha }}
+          path: |
+            results/pr-${{ github.event.pull_request.head.sha }}/result.json
+            results/pr-${{ github.event.pull_request.head.sha }}/runs.jsonl
+            results/pr-${{ github.event.pull_request.head.sha }}/summary.md
+          retention-days: 90
 
       - name: Results
         if: "!cancelled()"
@@ -132,7 +190,7 @@ jobs:
       # master only: each commit's result appended to the bench-results branch, and the
       # corpus kept on the bench-data branch if it was rebuilt from Wikimedia
       - name: Record
-        if: success() && env.RECORD == '1'
+        if: success() && github.event_name != 'pull_request'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -151,14 +209,33 @@ jobs:
             done
             return 1
           }
-          git fetch -q origin master
           open_branch bench-results .store
-          for c in $COMMITS; do
-            git merge-base --is-ancestor "$c" origin/master || { echo "::warning::$c is not on master: not recorded"; continue; }
-            python3 /tmp/harness/report.py record .store "results/$c/result.json" "results/$c/raw.jsonl"
+          recorded=0
+          while read -r head base record; do
+            [ "$record" = 1 ] || continue
+            subject=$(git show -s --format=%s "$head")
+            if [ "$base" = - ]; then
+              if grep -qx "$head" <(python3 -c 'import json,sys; [print(json.loads(l)["commit"]) for l in open(sys.argv[1])]' .store/records.jsonl 2>/dev/null); then
+                echo "$head: already recorded"; continue
+              fi
+              res="results/$head/result.json"
+              python3 /tmp/harness/report.py record .store "$res" "results/$head/runs.jsonl"
+              msg="record bench: ${head::7}"
+            else
+              if [ -f .store/links.jsonl ] && grep -q "\"commit\": \"$head\"" .store/links.jsonl; then
+                echo "$head: already linked"; continue
+              fi
+              res="results/pr-$head/result.json"
+              pr=$(echo "$subject" | sed -nE 's/.*\(#([0-9]+)\)\s*$/\1/p')
+              python3 /tmp/harness/links.py add .store --commit "$head" --pr "$pr" \
+                --result "$res" --runs "results/pr-$head/runs.jsonl" --source backfill
+              msg="link bench: ${head::7} (#$pr), backfill"
+            fi
             git -C .store add -A
-            git -C .store commit -qm "record bench: ${c::7}, bench $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["bench"])' "results/$c/result.json")"
-          done
+            git -C .store commit -qm "$msg, bench $(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["bench"])' "$res")"
+            recorded=$((recorded + 1))
+          done < jobs.txt
+          [ "$recorded" -gt 0 ] || { echo "nothing new to record"; exit 0; }
           push_branch bench-results .store
           if [ "$CORPUS_SOURCE" != kept ]; then
             open_branch bench-data .data
