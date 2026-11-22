@@ -1,0 +1,1483 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="upigz's figures so far, from the research host: the parallel single-member decoder against rapidgzip and igzip, and the single-thread kernel against libdeflate.">
+      
+      
+        <meta name="author" content="Louis Maddox">
+      
+      
+        <link rel="canonical" href="https://lmmx.github.io/upigz/pr-preview/pr-19/benchmarks/">
+      
+      
+        <link rel="describedby" href="../llms.txt">
+        
+          <link rel="alternate" type="text/markdown" href="./index.md">
+        
+      
+      
+        <link rel="prev" href="../getting-started/">
+      
+      
+        <link rel="next" href="../journal/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.71">
+    
+    
+      
+        <title>Benchmarks - upigz</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.e442bf79.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,300i,400,400i,500,500i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"IBM Plex Sans";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/extra.css?v=b516000488cc">
+    
+      <link rel="stylesheet" href="../assets/stylesheets/blog.css?v=b516000488cc">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    <meta name="format-detection" content="telephone=no">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="upigz">
+  <meta property="og:title" content="Benchmarks">
+  <meta property="og:description" content="upigz's figures so far, from the research host: the parallel single-member decoder against rapidgzip and igzip, and the single-thread kernel against libdeflate.">
+  <meta property="og:url" content="https://lmmx.github.io/upigz/pr-preview/pr-19/benchmarks/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Benchmarks">
+  <meta name="twitter:description" content="upigz's figures so far, from the research host: the parallel single-member decoder against rapidgzip and igzip, and the single-thread kernel against libdeflate.">
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="upigz" class="md-header__button md-logo" aria-label="upigz" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            upigz
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Benchmarks
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/lmmx/upigz" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lmmx/upigz
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="upigz" class="md-nav__button md-logo" aria-label="upigz" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    upigz
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/lmmx/upigz" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lmmx/upigz
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Get started
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benchmarks
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benchmarks
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#parallel-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Parallel, end to end
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-thread-in-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Single thread, in memory
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-i9-run-will-decide" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What the i9 run will decide
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#earlier-the-first-kernel-and-the-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Earlier: the first kernel and the field
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interleaving-within-a-thread-closed" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Interleaving within a thread (closed)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../journal/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Journals
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Journals
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../journal/interleaved-inflate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Interleaving within a thread
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../journal/kernel-and-parallel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  The kernel and the first parallel win
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../journal/speculative-theorem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  The speculative-decode theorem
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../blog/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Blog
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Blog
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blog/2026-11-22-one-member-four-cores/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  One gzip member, four cores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#parallel-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Parallel, end to end
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-thread-in-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Single thread, in memory
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-i9-run-will-decide" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What the i9 run will decide
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#earlier-the-first-kernel-and-the-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Earlier: the first kernel and the field
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interleaving-within-a-thread-closed" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Interleaving within a thread (closed)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+  <button type="button" title="Copy as Markdown" aria-label="Copy as Markdown" class="md-content__button md-icon" data-md-copy-url="./index.md">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12z"/></svg>
+  </button>
+
+
+  
+    <a href="https://github.com/lmmx/upigz/edit/master/docs/site/benchmarks/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-pen" viewBox="0 0 24 24"><path d="M12.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v9.34"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10.378 12.622a1 1 0 0 1 3 3.003L8.36 20.637a2 2 0 0 1-.854.506l-2.867.837a.5.5 0 0 1-.62-.62l.836-2.869a2 2 0 0 1 .506-.853z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="benchmarks">Benchmarks<a class="headerlink" href="#benchmarks" title="Permanent link">&para;</a></h1>
+<p>Every figure on this page comes from the research host, a shared 4-vCPU cloud VM (a Sapphire
+Rapids-class Xeon at 2.1 GHz, 4 real cores, no hardware PMU), and is copied unchanged from the
+journals. <strong>They are indicative only.</strong> The i9-10900K workstation, with 10 cores and 20
+threads, decides the real ranking, through registered recipes that don't exist yet.</p>
+<p>How the figures are made:</p>
+<ul>
+<li><strong>Paired rounds.</strong> Every arm runs from one harness binary, once a round in shuffled order;
+  the first round is dropped.</li>
+<li><strong>Ratios</strong> are the geometric mean of per-round time ratios, with a 95% t interval on the log
+  scale (<code>scripts/ratio.py</code>). Below 1 is faster. An A/A duplicate arm lands within about ±4%,
+  so the harness resolves differences of about 5%.</li>
+<li><strong>Correctness first.</strong> Every arm is checked byte-exact against the reference before timing.</li>
+<li><strong>The build</strong> targets <code>x86-64-v3</code> (AVX2 and BMI2, the i9's instruction set; no AVX-512).</li>
+</ul>
+<p>The corpora are 64 MiB each of real Wikidata JSON (the head of <code>latest-all.json.gz</code>), source
+code and binaries, as a single member at <code>gzip -6</code> and <code>-9</code>, as 1 MiB members (<code>m1M</code>) and as
+BGZF, and a 1.34 GB single-member Wikidata file for the parallel runs.</p>
+<h2 id="parallel-end-to-end">Parallel, end to end<a class="headerlink" href="#parallel-end-to-end" title="Permanent link">&para;</a></h2>
+<p>On the 1.34 GB single-member Wikidata file (the real dump's head, recompressed with
+<code>gzip -6</code>): page-cache read, decode, CRC-32 and ISIZE checked, bytes to /dev/null. From
+<a href="../journal/kernel-and-parallel/">the second entry</a>.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>GB/s</th>
+<th>time vs rapidgzip -P4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>upigz -P4, 1 MiB chunks (unchecked build)</strong></td>
+<td><strong>1.21</strong></td>
+<td><strong>0.677 [0.616, 0.744]</strong></td>
+</tr>
+<tr>
+<td><strong>upigz -P4, 1 MiB chunks (safe build)</strong></td>
+<td><strong>1.15</strong></td>
+<td><strong>0.750 [0.698, 0.807]</strong> (separate race)</td>
+</tr>
+<tr>
+<td>upigz -P3</td>
+<td>0.94</td>
+<td>0.864 [0.810, 0.921]</td>
+</tr>
+<tr>
+<td>rapidgzip 0.16.2 -P4 (default / <code>--verify</code>)</td>
+<td>0.80 / 0.82</td>
+<td>1.000 / 0.980</td>
+</tr>
+<tr>
+<td>igzip (ISA-L 2.31), 1 thread</td>
+<td>0.81</td>
+<td>1.003</td>
+</tr>
+</tbody>
+</table>
+<figure class="bf-fig">
+<svg viewBox="0 0 720 264" role="img" aria-label="upigz -P4: 1.21 GB/s, 0.677 of rapidgzip -P4's time; upigz -P3: 0.94 GB/s, 0.864 of rapidgzip -P4's time; rapidgzip -P4: 0.80 GB/s, 1.000 of rapidgzip -P4's time; igzip, 1 thread: 0.81 GB/s, 1.003 of rapidgzip -P4's time; upigz -P2: 0.69 GB/s, 1.220 of rapidgzip -P4's time"><text x="132" y="16" class="bf-tm">GB/s, end to end with CRC (higher is better)</text><text x="720" y="16" class="bf-tm" text-anchor="end">time vs rapidgzip -P4 [95% CI]</text><text x="122" y="45" class="bf-t-strong" text-anchor="end">upigz -P4</text><text x="122" y="59" class="bf-tm" text-anchor="end">1 MiB chunks</text><rect x="132" y="34" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="34" width="345.4" height="16" rx="4" class="bf-green"/><text x="483.4" y="47" class="bf-t">1.21</text><text x="720" y="47" class="bf-t-strong" text-anchor="end">0.677 [0.616, 0.744]</text><text x="122" y="85" class="bf-t-strong" text-anchor="end">upigz -P3</text><text x="122" y="99" class="bf-tm" text-anchor="end">2 MiB chunks</text><rect x="132" y="74" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="74" width="269.4" height="16" rx="4" class="bf-green"/><text x="407.4" y="87" class="bf-t">0.94</text><text x="720" y="87" class="bf-t-strong" text-anchor="end">0.864 [0.810, 0.921]</text><text x="122" y="125" class="bf-t-strong" text-anchor="end">rapidgzip -P4</text><text x="122" y="139" class="bf-tm" text-anchor="end">reference</text><rect x="132" y="114" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="114" width="228.0" height="16" rx="4" class="bf-steel"/><text x="366.0" y="127" class="bf-t">0.80</text><text x="720" y="127" class="bf-t-strong" text-anchor="end">1.000</text><text x="122" y="165" class="bf-t-strong" text-anchor="end">igzip, 1 thread</text><rect x="132" y="154" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="154" width="230.9" height="16" rx="4" class="bf-steel"/><text x="368.9" y="167" class="bf-t">0.81</text><text x="720" y="167" class="bf-t-strong" text-anchor="end">1.003 [0.918, 1.096]</text><text x="122" y="205" class="bf-t-strong" text-anchor="end">upigz -P2</text><text x="122" y="219" class="bf-tm" text-anchor="end">2 MiB chunks</text><rect x="132" y="194" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="194" width="195.7" height="16" rx="4" class="bf-green"/><text x="333.7" y="207" class="bf-t">0.69</text><text x="720" y="207" class="bf-t-strong" text-anchor="end">1.220 [1.132, 1.314]</text><path d="M132 236H532" class="bf-axis"/><path d="M132.0 236v5" class="bf-axis"/><text x="132.0" y="254" class="bf-tm" text-anchor="middle">0.0</text><path d="M274.9 236v5" class="bf-axis"/><text x="274.9" y="254" class="bf-tm" text-anchor="middle">0.5</text><path d="M417.7 236v5" class="bf-axis"/><text x="417.7" y="254" class="bf-tm" text-anchor="middle">1.0</text></svg>
+
+<figcaption>The same race as a chart, generated from <code>runs/race-big4.txt</code> by
+<code>docs/scripts/figures.py</code> (the numbers are in
+<a href="../assets/data/results.json"><code>results.json</code></a>). Six paired rounds; the
+time ratio is the geometric mean of per-round ratios, with a 95% interval.</figcaption>
+</figure>
+
+<p>rapidgzip scales poorly on this host (its P2 is slower than its sequential P1 path), so the
+i9's 10 cores decide the real ranking.</p>
+<p>How the parallel decoder got there, upigz -P4 against rapidgzip -P4:</p>
+<table>
+<thead>
+<tr>
+<th>time vs rapidgzip -P4</th>
+<th>version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.591 [1.194, 2.119]</td>
+<td>1. all chunks alive at once</td>
+</tr>
+<tr>
+<td>0.849 [0.793, 0.909]</td>
+<td>2. <strong>bounded</strong></td>
+</tr>
+<tr>
+<td>1.130 [1.029, 1.241]</td>
+<td>3. resolution as a queued task</td>
+</tr>
+<tr>
+<td><strong>0.677</strong> [0.616, 0.744]</td>
+<td>4. <strong>window hand-off off the chain</strong></td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>Every chunk's buffers were alive at once, and decode, then CRC, then write ran one after
+   another. In memory, with warm buffers, it reached 1.69 GB/s.</li>
+<li>At most threads + 2 chunks in flight, recycled buffers, streamed output.</li>
+<li>A regression: it exposed a serial chain.</li>
+<li>The next window is derived before a chunk is queued, with separate cursors for windows and
+   writes.</li>
+</ol>
+<h2 id="single-thread-in-memory">Single thread, in memory<a class="headerlink" href="#single-thread-in-memory" title="Permanent link">&para;</a></h2>
+<p>Time vs libdeflate 1.26.1, in the same binary. The upigz rows are from
+<a href="https://github.com/lmmx/upigz/blob/master/docs/journal/2026-11-22-kernel-parity.md">the kernel's parity entry</a>
+(<code>runs/k1-*.txt</code>, 11 rounds), after #16. The ISA-L and zlib-rs rows are from the first race
+(<a href="../journal/kernel-and-parallel/">the second entry</a>, <code>runs/sota-*.txt</code>). Each is a ratio
+against libdeflate measured in its own binary, so they compare across the two runs.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Wikidata -6</th>
+<th>source -6</th>
+<th>binary -6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>upigz kernel, unchecked build</strong></td>
+<td><strong>1.000</strong> [0.986, 1.014]</td>
+<td><strong>0.997</strong> [0.961, 1.034]</td>
+<td><strong>1.030</strong> [0.984, 1.078]</td>
+</tr>
+<tr>
+<td>upigz kernel, safe build (the default)</td>
+<td>1.102 [1.086, 1.119]</td>
+<td>1.162 [1.112, 1.214]</td>
+<td>1.179 [1.096, 1.267]</td>
+</tr>
+<tr>
+<td>ISA-L 2.31</td>
+<td>1.172</td>
+<td>1.138</td>
+<td>1.149</td>
+</tr>
+<tr>
+<td>zlib-rs 0.6.8</td>
+<td>1.366</td>
+<td>1.410</td>
+<td>1.391</td>
+</tr>
+</tbody>
+</table>
+<figure class="bf-fig">
+<svg viewBox="0 0 720 420" role="img" aria-label="Wikidata JSON, upigz, unchecked build: 1.000 [0.986, 1.014]; Wikidata JSON, upigz, safe build: 1.102 [1.086, 1.119]; Wikidata JSON, ISA-L 2.31 (first race): 1.172 [1.093, 1.258]; Wikidata JSON, zlib-rs 0.6.8 (first race): 1.366 [1.312, 1.423]; source code, upigz, unchecked build: 0.997 [0.961, 1.034]; source code, upigz, safe build: 1.162 [1.112, 1.214]; source code, ISA-L 2.31 (first race): 1.138 [1.094, 1.183]; source code, zlib-rs 0.6.8 (first race): 1.410 [1.378, 1.443]; binaries, upigz, unchecked build: 1.030 [0.984, 1.078]; binaries, upigz, safe build: 1.179 [1.096, 1.267]; binaries, ISA-L 2.31 (first race): 1.149 [1.065, 1.240]; binaries, zlib-rs 0.6.8 (first race): 1.391 [1.289, 1.502]"><text x="190" y="14" class="bf-tm">time vs libdeflate 1.26.1, one thread, in memory (lower is better; 1.0 = libdeflate)</text><text x="0" y="48" class="bf-ts">Wikidata JSON</text><text x="180" y="70" class="bf-t" text-anchor="end">upigz, unchecked build</text><path d="M252.2 66H272.4" class="bf-whisker"/><circle cx="262.3" cy="66" r="5" class="bf-green"/><text x="720" y="70" class="bf-t-strong" text-anchor="end">1.000</text><text x="180" y="92" class="bf-t" text-anchor="end">upigz, safe build</text><path d="M324.5 88H348.4" class="bf-whisker"/><circle cx="336.1" cy="88" r="5" class="bf-green"/><text x="720" y="92" class="bf-t-strong" text-anchor="end">1.102</text><text x="180" y="114" class="bf-t" text-anchor="end">ISA-L 2.31 (first race)</text><path d="M329.6 110H448.9" class="bf-whisker"/><circle cx="386.7" cy="110" r="5" class="bf-steel"/><text x="720" y="114" class="bf-t-strong" text-anchor="end">1.172</text><text x="180" y="136" class="bf-t" text-anchor="end">zlib-rs 0.6.8 (first race)</text><path d="M487.9 132H568.2" class="bf-whisker"/><circle cx="527.0" cy="132" r="5" class="bf-steel"/><text x="720" y="136" class="bf-t-strong" text-anchor="end">1.366</text><text x="0" y="170" class="bf-ts">source code</text><text x="180" y="192" class="bf-t" text-anchor="end">upigz, unchecked build</text><path d="M234.1 188H286.9" class="bf-whisker"/><circle cx="260.1" cy="188" r="5" class="bf-green"/><text x="720" y="192" class="bf-t-strong" text-anchor="end">0.997</text><text x="180" y="214" class="bf-t" text-anchor="end">upigz, safe build</text><path d="M343.3 210H417.0" class="bf-whisker"/><circle cx="379.4" cy="210" r="5" class="bf-green"/><text x="720" y="214" class="bf-t-strong" text-anchor="end">1.162</text><text x="180" y="236" class="bf-t" text-anchor="end">ISA-L 2.31 (first race)</text><path d="M330.3 232H394.6" class="bf-whisker"/><circle cx="362.1" cy="232" r="5" class="bf-steel"/><text x="720" y="236" class="bf-t-strong" text-anchor="end">1.138</text><text x="180" y="258" class="bf-t" text-anchor="end">zlib-rs 0.6.8 (first race)</text><path d="M535.6 254H582.6" class="bf-whisker"/><circle cx="558.8" cy="254" r="5" class="bf-steel"/><text x="720" y="258" class="bf-t-strong" text-anchor="end">1.410</text><text x="0" y="292" class="bf-ts">binaries</text><text x="180" y="314" class="bf-t" text-anchor="end">upigz, unchecked build</text><path d="M250.7 310H318.7" class="bf-whisker"/><circle cx="284.0" cy="310" r="5" class="bf-green"/><text x="720" y="314" class="bf-t-strong" text-anchor="end">1.030</text><text x="180" y="336" class="bf-t" text-anchor="end">upigz, safe build</text><path d="M331.7 332H455.4" class="bf-whisker"/><circle cx="391.7" cy="332" r="5" class="bf-green"/><text x="720" y="336" class="bf-t-strong" text-anchor="end">1.179</text><text x="180" y="358" class="bf-t" text-anchor="end">ISA-L 2.31 (first race)</text><path d="M309.3 354H435.8" class="bf-whisker"/><circle cx="370.0" cy="354" r="5" class="bf-steel"/><text x="720" y="358" class="bf-t-strong" text-anchor="end">1.149</text><text x="180" y="380" class="bf-t" text-anchor="end">zlib-rs 0.6.8 (first race)</text><path d="M471.3 376H625.3" class="bf-whisker"/><circle cx="545.0" cy="376" r="5" class="bf-steel"/><text x="720" y="380" class="bf-t-strong" text-anchor="end">1.391</text><path d="M262.3 28V392" class="bf-ref"/><path d="M190 396H660" class="bf-axis"/><path d="M262.3 396v5" class="bf-axis"/><text x="262.3" y="414" class="bf-tm" text-anchor="middle">1.0</text><path d="M334.6 396v5" class="bf-axis"/><text x="334.6" y="414" class="bf-tm" text-anchor="middle">1.1</text><path d="M406.9 396v5" class="bf-axis"/><text x="406.9" y="414" class="bf-tm" text-anchor="middle">1.2</text><path d="M479.2 396v5" class="bf-axis"/><text x="479.2" y="414" class="bf-tm" text-anchor="middle">1.3</text><path d="M551.5 396v5" class="bf-axis"/><text x="551.5" y="414" class="bf-tm" text-anchor="middle">1.4</text><path d="M623.8 396v5" class="bf-axis"/><text x="623.8" y="414" class="bf-tm" text-anchor="middle">1.5</text></svg>
+
+<figcaption>The single-thread table as a chart, generated from <code>runs/k1-*.txt</code> and
+<code>runs/sota-*.txt</code> by <code>docs/scripts/figures.py</code>. The dashed line is
+libdeflate; whiskers are 95% intervals. The unchecked kernel is level with libdeflate, not
+ahead of it.</figcaption>
+</figure>
+
+<p>What moved the kernel, step by step (unchecked-build time vs libdeflate, on Wikidata / source /
+binary):</p>
+<table>
+<thead>
+<tr>
+<th>step</th>
+<th>ratios</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v1: entry-driven consume, preload, 3 literals per refill, margins, word copies</td>
+<td>1.28 / 1.17 / 1.23</td>
+</tr>
+<tr>
+<td>unconditional first copy chunk (two 16-byte chunks, then libdeflate's 5×8)</td>
+<td>no change</td>
+</tr>
+<tr>
+<td><code>bzhi</code>/<code>shrx</code> field extraction without masks, subtract the whole entry</td>
+<td>no change</td>
+</tr>
+<tr>
+<td><strong>libdeflate's literal→match fallthrough</strong> (no refill on the transition)</td>
+<td><strong>1.21 / 1.13 / 1.15</strong></td>
+</tr>
+<tr>
+<td><strong>table build: libdeflate's doubling method for complete codes</strong></td>
+<td><strong>1.07 / 1.09 / 1.09</strong></td>
+</tr>
+<tr>
+<td>generic (inlined) entry constructors, 4 precode symbols per refill</td>
+<td>1.06 / 1.08 / 1.14 (noisy run)</td>
+</tr>
+<tr>
+<td><strong>one <code>bzhi</code> for the extra bits</strong> (#16; the host restarted, so a fresh baseline: 1.079 / 1.098 / 1.113)</td>
+<td><strong>1.000 / 0.997 / 1.030</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-the-i9-run-will-decide">What the i9 run will decide<a class="headerlink" href="#what-the-i9-run-will-decide" title="Permanent link">&para;</a></h2>
+<p>Everything above is from a 4-vCPU VM, where rapidgzip scales poorly. The i9-10900K workstation
+(10 cores, 20 threads, dual-channel DDR4) decides, through a recipe whose decision rule is
+registered before its data. The first recipe races upigz against rapidgzip at the same thread
+counts, and against igzip, on the single-member Wikidata file. It will settle two questions:</p>
+<ul>
+<li><strong>Does the lead hold with more cores?</strong> On the VM upigz -P4 took 0.677× rapidgzip -P4's time.
+  At 8 and 10 threads both decoders are expected to approach the memory bandwidth limit, and
+  rapidgzip's design writes and rereads 16-bit symbols for every output byte.</li>
+<li><strong>Where does upigz's own scaling stop?</strong> The thread sweep shows the knee, and with it whether
+  the next lever is the 16-bit pass-1 kernel or memory traffic: the re-decode bet in the
+  <a href="https://github.com/lmmx/upigz/blob/master/docs/team/research-charter/FRONTIER.md">research charter's frontier</a>.</li>
+</ul>
+<p>The recipe is registered, with its rule, in <a href="https://github.com/lmmx/upigz/blob/master/docs/journal/2026-11-22-i9-race-registration.md">the i9 race's registration</a>: <code>just submit bench-i9-race</code>, judged by <code>bench/i9_race.py</code>. It is VALID PASS if the 95% interval of time(upigz-P10) / time(rapidgzip-P10) lies wholly below 1.00, with an A/A control inside [0.95, 1.05]. It is queued for the workstation, and its result will be posted here.</p>
+<h2 id="earlier-the-first-kernel-and-the-field">Earlier: the first kernel and the field<a class="headerlink" href="#earlier-the-first-kernel-and-the-field" title="Permanent link">&para;</a></h2>
+<p>These are from <a href="../journal/interleaved-inflate/">the first entry</a>, before the kernel above: <code>ours-k1</code> is the first probe decoder.</p>
+<p>In memory (raw DEFLATE, time vs libdeflate; GB/s for libdeflate):</p>
+<table>
+<thead>
+<tr>
+<th>file</th>
+<th>libdeflate GB/s</th>
+<th>zlib-rs</th>
+<th>zlib-ng</th>
+<th>ours-k1</th>
+<th>miniz_oxide</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wikidata -6</td>
+<td>1.131</td>
+<td>1.35</td>
+<td>1.43</td>
+<td>1.81</td>
+<td>1.86</td>
+</tr>
+<tr>
+<td>wikidata -9</td>
+<td>1.174</td>
+<td>1.40</td>
+<td>1.47</td>
+<td>1.86</td>
+<td>1.89</td>
+</tr>
+<tr>
+<td>wikidata m1M</td>
+<td>1.210</td>
+<td>1.33</td>
+<td>1.46</td>
+<td>1.75</td>
+<td>1.88</td>
+</tr>
+<tr>
+<td>wikidata BGZF</td>
+<td>1.053</td>
+<td>1.38</td>
+<td>1.43</td>
+<td>1.79</td>
+<td>1.98</td>
+</tr>
+<tr>
+<td>source -6</td>
+<td>0.686</td>
+<td>1.36</td>
+<td>1.52</td>
+<td>1.74</td>
+<td>2.02</td>
+</tr>
+<tr>
+<td>source -9</td>
+<td>0.683</td>
+<td>1.36</td>
+<td>1.57</td>
+<td>1.76</td>
+<td>2.09</td>
+</tr>
+<tr>
+<td>source m1M</td>
+<td>0.692</td>
+<td>1.32</td>
+<td>1.47</td>
+<td>1.72</td>
+<td>2.00</td>
+</tr>
+<tr>
+<td>source BGZF</td>
+<td>0.632</td>
+<td>1.34</td>
+<td>1.45</td>
+<td>1.64</td>
+<td>1.89</td>
+</tr>
+<tr>
+<td>binary -6</td>
+<td>0.574</td>
+<td>1.37</td>
+<td>1.49</td>
+<td>1.67</td>
+<td>2.02</td>
+</tr>
+<tr>
+<td>binary -9</td>
+<td>0.574</td>
+<td>1.39</td>
+<td>1.48</td>
+<td>1.72</td>
+<td>1.93</td>
+</tr>
+<tr>
+<td>binary m1M</td>
+<td>0.583</td>
+<td>1.33</td>
+<td>1.40</td>
+<td>1.62</td>
+<td>1.96</td>
+</tr>
+<tr>
+<td>binary BGZF</td>
+<td>0.553</td>
+<td>1.37</td>
+<td>1.45</td>
+<td>1.61</td>
+<td>1.97</td>
+</tr>
+</tbody>
+</table>
+<p>The command-line tools, end to end (page-cache read, inflate, CRC, write to /dev/null), GB/s,
+8 paired rounds (<code>scripts/cli_ab.py</code>):</p>
+<table>
+<thead>
+<tr>
+<th>file</th>
+<th>igzip (ISA-L 2.31)</th>
+<th>libdeflate-gunzip</th>
+<th>rapidgzip -P1</th>
+<th>rapidgzip -P4</th>
+<th>pigz</th>
+<th>gzip</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wikidata -6</td>
+<td><strong>0.821</strong></td>
+<td>0.671</td>
+<td>0.497</td>
+<td>0.540</td>
+<td>0.346</td>
+<td>0.198</td>
+</tr>
+<tr>
+<td>source -6</td>
+<td>0.539</td>
+<td>0.469</td>
+<td>0.387</td>
+<td><strong>0.590</strong></td>
+<td>0.209</td>
+<td>0.137</td>
+</tr>
+<tr>
+<td>binary -6</td>
+<td>0.469</td>
+<td>0.416</td>
+<td>0.353</td>
+<td><strong>0.488</strong></td>
+<td>0.186</td>
+<td>0.128</td>
+</tr>
+<tr>
+<td>wikidata BGZF</td>
+<td>0.856</td>
+<td><strong>1.060</strong></td>
+<td>0.513</td>
+<td>0.883</td>
+<td>0.324</td>
+<td>0.198</td>
+</tr>
+<tr>
+<td>wikidata m1M</td>
+<td>1.041</td>
+<td><strong>1.143</strong></td>
+<td>0.552</td>
+<td>1.034</td>
+<td>0.375</td>
+<td>0.206</td>
+</tr>
+</tbody>
+</table>
+<p>Across cores, in memory, 1 MiB members dealt round-robin to threads:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>t1</th>
+<th>t2</th>
+<th>t3</th>
+<th>t4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wikidata GB/s</td>
+<td>1.158</td>
+<td>2.103</td>
+<td><strong>3.231</strong></td>
+<td>2.746</td>
+</tr>
+<tr>
+<td>binary GB/s</td>
+<td>0.593</td>
+<td>1.123</td>
+<td>1.502</td>
+<td>1.633</td>
+</tr>
+</tbody>
+</table>
+<h2 id="interleaving-within-a-thread-closed">Interleaving within a thread (closed)<a class="headerlink" href="#interleaving-within-a-thread-closed" title="Permanent link">&para;</a></h2>
+<p>Decoding K independent members round-robin in one thread, as time vs <code>ours-k1</code> (below 1 is
+faster). It doesn't pay on real data. From <a href="../journal/interleaved-inflate/">the first entry</a>.</p>
+<table>
+<thead>
+<tr>
+<th>file</th>
+<th>k2</th>
+<th>k4</th>
+<th>A/A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wikidata m1M (first run, rolled loop)</td>
+<td>1.245 [1.188, 1.305]</td>
+<td>1.177 [1.128, 1.228]</td>
+<td>1.018 [0.949, 1.092]</td>
+</tr>
+<tr>
+<td>wikidata m1M (unrolled)</td>
+<td>1.038 [0.996, 1.081]</td>
+<td>1.108 [1.043, 1.178]</td>
+<td>1.027 [0.980, 1.077]</td>
+</tr>
+<tr>
+<td>wikidata BGZF</td>
+<td>1.023 [0.924, 1.133]</td>
+<td>1.084 [1.021, 1.151]</td>
+<td>0.966 [0.900, 1.036]</td>
+</tr>
+<tr>
+<td>source m1M</td>
+<td>0.982 [0.914, 1.054]</td>
+<td>1.100 [1.006, 1.204]</td>
+<td>0.967 [0.933, 1.002]</td>
+</tr>
+<tr>
+<td>source BGZF</td>
+<td>0.998 [0.955, 1.042]</td>
+<td>1.102 [1.046, 1.162]</td>
+<td>1.018 [0.956, 1.083]</td>
+</tr>
+<tr>
+<td>binary m1M</td>
+<td>1.035 [0.980, 1.093]</td>
+<td>1.042 [0.989, 1.098]</td>
+<td>0.973 [0.900, 1.052]</td>
+</tr>
+<tr>
+<td>binary BGZF</td>
+<td>1.073 [1.010, 1.140]</td>
+<td>1.129 [1.066, 1.194]</td>
+<td>1.023 [0.963, 1.088]</td>
+</tr>
+</tbody>
+</table>
+<p>On symbol-dense controls the mechanism exists:</p>
+<table>
+<thead>
+<tr>
+<th>Wikidata m1M re-encoded</th>
+<th>k2</th>
+<th>k3</th>
+<th>k4</th>
+<th>k8</th>
+<th>libdeflate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Z_HUFFMAN_ONLY</code></td>
+<td>0.781 [0.734, 0.831]</td>
+<td>0.798</td>
+<td><strong>0.775</strong> [0.716, 0.839]</td>
+<td>0.886</td>
+<td>0.599</td>
+</tr>
+<tr>
+<td><code>Z_RLE</code> (also ~all literals)</td>
+<td><strong>0.737</strong> [0.691, 0.785]</td>
+<td>0.778</td>
+<td>0.784</td>
+<td>—</td>
+<td>0.624</td>
+</tr>
+</tbody>
+</table>
+<p>Real gzip data is match-dominated, which is why:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>symbols/byte</th>
+<th>literal share of symbols</th>
+<th>bytes from matches</th>
+<th>mean match len</th>
+<th>dist &lt;8</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wikidata</td>
+<td><strong>0.121</strong></td>
+<td>0.695</td>
+<td>91.6%</td>
+<td>24.7</td>
+<td>1.4%</td>
+</tr>
+<tr>
+<td>source</td>
+<td>0.237</td>
+<td>0.623</td>
+<td>85.3%</td>
+<td>9.6</td>
+<td>3.2%</td>
+</tr>
+<tr>
+<td>binary</td>
+<td>0.249</td>
+<td>0.642</td>
+<td>84.0%</td>
+<td>9.4</td>
+<td>3.0%</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../getting-started/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Get started">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Get started
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../journal/" class="md-footer__link md-footer__link--next" aria-label="Next: Journals">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Journals
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      upigz is licensed under MIT
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    
+    <a href="https://github.com/lmmx/upigz" target="_blank" rel="noopener" title="upigz on GitHub" class="md-social__link">
+    
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.action.copy","content.action.edit","content.code.copy","content.tabs.link","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.top","search.highlight","search.suggest","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a2388154.min.js"></script>
+      
+    
+  </body>
+</html>
