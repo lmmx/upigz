@@ -1,15 +1,15 @@
 [package]
-name = "upigz"
-version = "0.0.0"
 edition = "2021"
+name = "upigz"
 publish = false
+version = "0.0.0"
 
 [dependencies]
+crc32fast = "1"
 libdeflater = "1"
 libz-ng-sys = "1"
 libz-rs-sys = "0"
 miniz_oxide = "0"
-crc32fast = "1"
 
 [build-dependencies]
 cc = "1"
@@ -22,5 +22,5 @@ unchecked = []
 
 [profile.release]
 codegen-units = 1
-lto = "fat"
 debug = "line-tables-only"
+lto = "fat"

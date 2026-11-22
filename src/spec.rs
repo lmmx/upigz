@@ -6,7 +6,9 @@
 //! 32768 window markers, so back-references into the window copy markers, and markers
 //! propagate through later matches exactly as the unknown bytes would.
 
-use crate::fast::{build, dist_entry, lit_entry, Err, DB, DIST_ENOUGH, EOB, EXC, INVALID, LB, LIT, LIT_ENOUGH, SUB};
+use crate::fast::{
+    build, dist_entry, lit_entry, Err, DB, DIST_ENOUGH, EOB, EXC, INVALID, LB, LIT, LIT_ENOUGH, SUB,
+};
 
 pub const WINDOW: usize = 32768;
 
@@ -19,13 +21,21 @@ struct Bits<'a> {
 
 impl Bits<'_> {
     fn at(inp: &[u8], bitpos: u64) -> Result<Bits<'_>, Err> {
-        let mut b = Bits { inp, pos: (bitpos / 8) as usize, bb: 0, bc: 0 };
+        let mut b = Bits {
+            inp,
+            pos: (bitpos / 8) as usize,
+            bb: 0,
+            bc: 0,
+        };
         let skip = (bitpos % 8) as u32;
         b.take(skip)?;
         Ok(b)
     }
     fn refill(&mut self) -> Result<(), Err> {
-        let w = self.inp.get(self.pos..self.pos + 8).ok_or("input overrun")?;
+        let w = self
+            .inp
+            .get(self.pos..self.pos + 8)
+            .ok_or("input overrun")?;
         self.bb |= u64::from_le_bytes(w.try_into().unwrap()) << self.bc;
         self.pos += (7 - ((self.bc >> 3) & 7)) as usize;
         self.bc |= 56;
@@ -57,12 +67,17 @@ pub struct Spec {
 
 impl Default for Spec {
     fn default() -> Self {
-        Spec { lit: Box::new([INVALID; LIT_ENOUGH]), dist: Box::new([INVALID; DIST_ENOUGH]), m: Default::default(), mm: Default::default() }
+        Spec {
+            lit: Box::new([INVALID; LIT_ENOUGH]),
+            dist: Box::new([INVALID; DIST_ENOUGH]),
+            m: Default::default(),
+            mm: Default::default(),
+        }
     }
 }
 
 pub struct Run {
-    pub out: Vec<u16>,          // window markers [0, WINDOW), then the decoded symbols
+    pub out: Vec<u16>, // window markers [0, WINDOW), then the decoded symbols
     pub blocks: Vec<(u64, usize)>, // (bit position, output offset past the window) per block
     pub end_bitpos: u64,
     pub finished: bool, // reached the final block's end
@@ -73,7 +88,13 @@ pub struct Run {
 impl Spec {
     /// Decode from `bitpos` (a block start) until the final block ends, `max_out` symbols are
     /// out, or a block starts at or past `stop_bitpos`.
-    pub fn run(&mut self, inp: &[u8], bitpos: u64, max_out: usize, stop_bitpos: u64) -> Result<Run, Err> {
+    pub fn run(
+        &mut self,
+        inp: &[u8],
+        bitpos: u64,
+        max_out: usize,
+        stop_bitpos: u64,
+    ) -> Result<Run, Err> {
         self.m.set(0);
         self.mm.set(0);
         let mut b = Bits::at(inp, bitpos)?;
@@ -83,7 +104,14 @@ impl Spec {
         loop {
             let bp = b.bitpos();
             if bp >= stop_bitpos || out.len() - WINDOW >= max_out {
-                return Ok(Run { out, blocks, end_bitpos: bp, finished: false, matches: self.m.get(), marker_matches: self.mm.get() });
+                return Ok(Run {
+                    out,
+                    blocks,
+                    end_bitpos: bp,
+                    finished: false,
+                    matches: self.m.get(),
+                    marker_matches: self.mm.get(),
+                });
             }
             blocks.push((bp, out.len() - WINDOW));
             let last = b.take(1)? == 1;
@@ -99,7 +127,12 @@ impl Spec {
                     }
                     let src = inp.get(p + 4..p + 4 + len).ok_or("input overrun")?;
                     out.extend(src.iter().map(|&x| x as u16));
-                    b = Bits { inp, pos: p + 4 + len, bb: 0, bc: 0 };
+                    b = Bits {
+                        inp,
+                        pos: p + 4 + len,
+                        bb: 0,
+                        bc: 0,
+                    };
                 }
                 1 => {
                     let mut l = [0u8; 320];
@@ -122,7 +155,14 @@ impl Spec {
                 let d = b.bc & 7;
                 b.take(d)?;
                 let bp = b.bitpos();
-                return Ok(Run { out, blocks, end_bitpos: bp, finished: true, matches: self.m.get(), marker_matches: self.mm.get() });
+                return Ok(Run {
+                    out,
+                    blocks,
+                    end_bitpos: bp,
+                    finished: true,
+                    matches: self.m.get(),
+                    marker_matches: self.mm.get(),
+                });
             }
         }
     }
@@ -134,7 +174,9 @@ impl Spec {
         if hlit > 286 || hdist > 30 {
             return Err("too many codes");
         }
-        const ORD: [usize; 19] = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+        const ORD: [usize; 19] = [
+            16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+        ];
         let mut pl = [0u8; 19];
         for &i in &ORD[..hclen] {
             pl[i] = b.take(3)? as u8;
@@ -188,7 +230,8 @@ impl Spec {
             if e & SUB != 0 {
                 b.bb >>= e & 0x3f;
                 b.bc -= e & 0xff;
-                e = self.lit[((e >> 16) & 0x7fff) as usize + (b.bb & ((1 << ((e >> 8) & 0xf)) - 1)) as usize];
+                e = self.lit[((e >> 16) & 0x7fff) as usize
+                    + (b.bb & ((1 << ((e >> 8) & 0xf)) - 1)) as usize];
             }
             let saved = b.bb;
             b.bb >>= e & 0x3f;
@@ -203,12 +246,14 @@ impl Spec {
                 }
                 return Err("invalid literal/length code");
             }
-            let len = (e >> 16) as usize + ((saved & !(u64::MAX << (e & 0x3f))) >> ((e >> 8) & 0xf)) as usize;
+            let len = (e >> 16) as usize
+                + ((saved & !(u64::MAX << (e & 0x3f))) >> ((e >> 8) & 0xf)) as usize;
             let mut d = self.dist[(b.bb & ((1 << DB) - 1)) as usize];
             if d & SUB != 0 {
                 b.bb >>= d & 0x3f;
                 b.bc -= d & 0xff;
-                d = self.dist[((d >> 16) & 0x7fff) as usize + (b.bb & ((1 << ((d >> 8) & 0xf)) - 1)) as usize];
+                d = self.dist[((d >> 16) & 0x7fff) as usize
+                    + (b.bb & ((1 << ((d >> 8) & 0xf)) - 1)) as usize];
             }
             if d & EXC != 0 {
                 return Err("invalid distance code");
@@ -216,7 +261,8 @@ impl Spec {
             let saved = b.bb;
             b.bb >>= d & 0x3f;
             b.bc -= d & 0xff;
-            let dst = (d >> 16) as usize + ((saved & !(u64::MAX << (d & 0x3f))) >> ((d >> 8) & 0xf)) as usize;
+            let dst = (d >> 16) as usize
+                + ((saved & !(u64::MAX << (d & 0x3f))) >> ((d >> 8) & 0xf)) as usize;
             if dst > out.len() {
                 return Err("distance too far back");
             }
@@ -239,7 +285,7 @@ pub struct Census {
     pub markers: usize,
     pub last_marker: Option<usize>, // output offset (past the window) of the last marker
     pub window_refs: usize,         // distinct window bytes ever referenced
-    pub runs: usize,                // maximal runs of consecutive markers naming consecutive window bytes
+    pub runs: usize, // maximal runs of consecutive markers naming consecutive window bytes
 }
 
 pub fn census(run: &Run) -> Census {
@@ -260,5 +306,11 @@ pub fn census(run: &Run) -> Census {
             seen[(v - 256) as usize] = true;
         }
     }
-    Census { decoded: dec.len(), markers, last_marker: last, window_refs: seen.iter().filter(|&&x| x).count(), runs }
+    Census {
+        decoded: dec.len(),
+        markers,
+        last_marker: last,
+        window_refs: seen.iter().filter(|&&x| x).count(),
+        runs,
+    }
 }
