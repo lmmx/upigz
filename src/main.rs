@@ -8,6 +8,7 @@
 //! order, and prints one line per arm: `round arm ns bytes`.
 
 mod fast;
+mod fast_base;
 mod inflate;
 mod spec;
 mod par;
@@ -157,6 +158,7 @@ impl Isal {
 enum Arm {
     Ours { k: usize, b: usize, rolled: bool },
     Fast(fast::Decoder),
+    FastBase(fast_base::Decoder),
     Libdeflate(libdeflater::Decompressor),
     LibdeflateThreads(usize),
     ZlibNg(Zng),
@@ -181,6 +183,7 @@ fn arm(name: &str) -> Arm {
     }
     match base {
         "fast" => Arm::Fast(fast::Decoder::default()),
+        "fast-base" => Arm::FastBase(fast_base::Decoder::default()),
         "libdeflate" => Arm::Libdeflate(libdeflater::Decompressor::new()),
         "zlib-ng" => Arm::ZlibNg(Zng::new()),
         "isal" => Arm::Isal(Isal(unsafe { isal_shim_new() })),
@@ -217,6 +220,13 @@ fn run(a: &mut Arm, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
             _ => panic!("batch must be 1, 2, 4 or 8"),
         },
         Arm::Fast(d) => {
+            for (m, o) in ms.iter().zip(outs) {
+                let (n, end) = d.decode(inp, m.body, &mut o[..], m.raw).unwrap();
+                assert_eq!(n, m.raw);
+                assert_eq!(end + 8, m.end, "member end vs trailer");
+            }
+        }
+        Arm::FastBase(d) => {
             for (m, o) in ms.iter().zip(outs) {
                 let (n, end) = d.decode(inp, m.body, &mut o[..], m.raw).unwrap();
                 assert_eq!(n, m.raw);

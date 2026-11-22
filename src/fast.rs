@@ -98,6 +98,7 @@ const DIST_EXTRA: [u8; 30] =
     [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
 
 /// `l`: the code length to consume from this (sub)table's index position.
+#[inline(always)]
 pub(crate) fn lit_entry(sym: usize, l: u32) -> u32 {
     match sym {
         0..=255 => LIT | ((sym as u32) << 16) | (l << 8) | l,
@@ -109,6 +110,7 @@ pub(crate) fn lit_entry(sym: usize, l: u32) -> u32 {
         _ => INVALID | l,
     }
 }
+#[inline(always)]
 pub(crate) fn dist_entry(sym: usize, l: u32) -> u32 {
     if sym < 30 {
         ((DIST_BASE[sym] as u32) << 16) | (l << 8) | (l + DIST_EXTRA[sym] as u32)
@@ -471,8 +473,9 @@ impl Bits<'_> {
 fn extra_fast(saved: u64, e: u32) -> usize {
     // exactly bzhi's semantics (index = low byte; >= 64 leaves the value whole), so LLVM can
     // emit a single bzhi with no masking
-    let n = e & 0xff;
-    let low = if n < 64 { saved & ((1u64 << n) - 1) } else { saved };
+    // a non-exceptional entry consumes at most 28 bits (15 code + 13 extra), so its low byte
+    // fits in 5 bits: `x & ((1 << n) - 1)` with n < 32 is one bzhi, with no bounds case
+    let low = saved & ((1u64 << (e & 31)) - 1);
     low.wrapping_shr(e >> 8) as usize
 }
 
