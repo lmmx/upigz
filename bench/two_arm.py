@@ -3,7 +3,7 @@
 whole: a candidate against a reference on a main corpus (the gain family) and a guard corpus,
 at judged thread counts, with control counts where the two arms build the same decoder.
 Standard library only. Generalised from the stop-and-walk adjudicator (the Researcher's
-correction, #145 REVIEW 6921090225), for `just bench-cores-less-one` (#481) and after.
+correction, lmmx/mibz2#145 REVIEW 6921090225), for `just bench-cores-less-one` (lmmx/mibz2#481) and after.
 
     two_arm.py RUNS.jsonl --ref ARM --cand ARM --main CORPUS --guard CORPUS
                --judged 12,16,20 --controls 9,10 --env ENV.json [--rounds 10]
@@ -12,8 +12,8 @@ correction, #145 REVIEW 6921090225), for `just bench-cores-less-one` (#481) and 
 **Arms.** A record's arm is canonical: `NAME` for this build's harness, and `NAME@build-X`
 for another build's (`ab run`'s `NAME@EXE` arm, EXE under a directory `build-X`).
 
-**The rule** (frozen per run, before its data; `bench-cores-less-one`'s is #481's adoption
-registration on #145).
+**The rule** (frozen per run, before its data; `bench-cores-less-one`'s is lmmx/mibz2#481's adoption
+registration on lmmx/mibz2#145).
 - *A cell's step:* the rounds' paired wall ratios, candidate over reference: their geometric
   mean and its 95% interval (Student's t on the logs). FASTER if the interval lies below 1,
   SLOWER if above, else INCONCLUSIVE (not equal).
@@ -34,7 +34,7 @@ registration on #145).
   run with finite positive wall, CPU and peak memory; any key (corpus, arm, threads, round)
   duplicated, unexpected or missing from the full roster; a corpus whose outputs (size and
   hash) differ; a run beside a spinner sharing a decoder core; a control cell that moved.
-- **VOID too, on the machine's and the runs' metadata** (the Researcher's correction, #145
+- **VOID too, on the machine's and the runs' metadata** (the Researcher's correction, lmmx/mibz2#145
   REVIEW 6924511372: an absent overlap flag is no proof of a free core):
   - *the topology* (`ab env`'s record, `--env`): missing or malformed, or not the profile
     registered: `--cores` physical cores and `--cpus` CPUs in the affinity, each core's CPUs

@@ -1,13 +1,13 @@
 # The CI benchmark: GATED, a no-op until upigz has a CI bench harness and recipe.
 #
 # In lmmx/mibz2 this workflow builds a pull request's head and base and runs them as two arms
-# of one harness on one runner, in interleaved rounds, and posts the figures (bench/report.py)
-# as one comment on the pull request. upigz has no such harness yet: its paired A/B is the
+# of one harness on one runner, in interleaved rounds, and posts the figures (its
+# bench/report.py) as one comment on the pull request. upigz has no such harness yet: its paired A/B is the
 # research host's `upigz <file.gz> <raw> <rounds> <arm,...>` mode and scripts/, which need
 # corpora this runner doesn't have. So the one job below only says so, and passes.
 #
 # Lifting the gate (docs/team/SETUP-TODO.md item 5): a harness that builds both arms, a pinned
-# corpus with its SHA-256s, and bench/report.py adapted to its records. Until then, timing
+# corpus with its SHA-256s, and a report of its records (mibz2's bench/report.py is the model). Until then, timing
 # evidence is a registered workstation recipe (RULES C5; docs/team/research-charter/README.md).
 name: Benchmark
 

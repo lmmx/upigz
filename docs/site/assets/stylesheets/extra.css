@@ -1,4 +1,4 @@
-/* upigz's palette (mibz2's): a teal on the light scheme, an amber on the dark one. */
+/* upigz's palette: a teal on the light scheme, an amber on the dark one. */
 :root > * {
   --md-primary-fg-color: #0f6e74;
   --md-primary-fg-color--light: #1a8a91;
