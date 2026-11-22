@@ -75,6 +75,9 @@ jobs:
         env:
           PREVIEW_URL: ${{ env.PAGES_URL }}pr-preview/pr-${{ github.event.pull_request.number }}/
         run: sed -i "s|^site_url = .*|site_url = \"${PREVIEW_URL}\"|" zensical.toml
+      # the charts and results.json must match runs/ (docs/scripts/figures.py)
+      - name: Check the result charts are up to date
+        run: python3 docs/scripts/figures.py --check
       # --strict fails on broken links, anchors and cross-references
       - name: Build
         run: uv run --no-project -p 3.13 ${DOCS_WITH} zensical build --clean --strict
