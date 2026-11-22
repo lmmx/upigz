@@ -416,6 +416,23 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alternatives
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="././" class="md-nav__link md-nav__link--active">
         
   
@@ -431,6 +448,37 @@
   
 
       </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#wikidata" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        wikidata
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -718,6 +766,11 @@
                       
                     
                     
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -729,6 +782,25 @@
   
     
   
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#wikidata" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        wikidata
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -805,10 +877,116 @@ alternative taking longer (or more memory) than upigz at the same thread count.<
 rapidgzip run.</p>
 <p><strong>These are a runner's figures, not a ranking.</strong> The research host's and the i9's figures
 are on the <a href="../">Benchmarks</a> page; a ranking is decided on the i9-10900K.</p>
-<div class="admonition note">
-<p class="admonition-title">No master commit is recorded yet</p>
-<p>The first record appears once the Benchmark workflow has run on a push to master.</p>
-</div>
+<p>The latest record: <a href="https://github.com/lmmx/upigz/commit/2913d1e31452ff4471a8ce8ff3c0fb7b14e4d847"><code>2913d1e</code></a> (2026-11-22).</p>
+<p><strong>bench 1.0.0</strong>, 10 rounds, on AMD EPYC 7763 64-Core Processor (4 cores) · <a href="https://github.com/lmmx/upigz/actions/runs/45061665505">run</a>. Each arm decodes the whole file end to end (CRC checked), output to /dev/null; ratios are each arm's time over upigz's at the same thread count, paired by round, with a 95% interval (below 1 is faster than upigz).</p>
+<p>Versions: rustc 1.99.1, rapidgzip 0.16.2, igzip 2.31.1, libdeflate 1.23, pigz 2.8, gzip 1.14.</p>
+<h2 id="wikidata">wikidata<a class="headerlink" href="#wikidata" title="Permanent link">&para;</a></h2>
+<p>wd-256.json.gz: 40,095,641 bytes compressed, 268,385,295 decoded. wikidata-20261116-all.json.gz: the first 256 MiB, whole lines, gzip -6 -n (bench/ci_corpus.py)</p>
+<table>
+<thead>
+<tr>
+<th>threads</th>
+<th>arm</th>
+<th>MB/s</th>
+<th>wall s</th>
+<th>CPU s</th>
+<th>peak RSS MB</th>
+<th>wall vs upigz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>upigz</td>
+<td>514</td>
+<td>0.522</td>
+<td>0.522</td>
+<td>553.3</td>
+<td>1 (reference)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>rapidgzip</td>
+<td>835</td>
+<td>0.321</td>
+<td>0.321</td>
+<td>81.3</td>
+<td>0.613 [0.606, 0.621]</td>
+</tr>
+<tr>
+<td>1</td>
+<td>igzip</td>
+<td>1058</td>
+<td>0.254</td>
+<td>0.253</td>
+<td>24.6</td>
+<td>0.485 [0.479, 0.491]</td>
+</tr>
+<tr>
+<td>1</td>
+<td>libdeflate</td>
+<td>824</td>
+<td>0.326</td>
+<td>0.326</td>
+<td>295.7</td>
+<td>0.622 [0.615, 0.629]</td>
+</tr>
+<tr>
+<td>1</td>
+<td>pigz</td>
+<td>524</td>
+<td>0.512</td>
+<td>0.706</td>
+<td>24.6</td>
+<td>0.974 [0.956, 0.992]</td>
+</tr>
+<tr>
+<td>1</td>
+<td>gzip</td>
+<td>577</td>
+<td>0.465</td>
+<td>0.465</td>
+<td>24.6</td>
+<td>0.888 [0.878, 0.898]</td>
+</tr>
+<tr>
+<td>2</td>
+<td>upigz</td>
+<td>771</td>
+<td>0.348</td>
+<td>0.648</td>
+<td>196.0</td>
+<td>1 (reference)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>rapidgzip</td>
+<td>612</td>
+<td>0.438</td>
+<td>0.834</td>
+<td>191.0</td>
+<td>1.291 [1.232, 1.353]</td>
+</tr>
+<tr>
+<td>4</td>
+<td>upigz</td>
+<td>882</td>
+<td>0.304</td>
+<td>1.033</td>
+<td>261.0</td>
+<td>1 (reference)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>rapidgzip</td>
+<td>699</td>
+<td>0.384</td>
+<td>1.248</td>
+<td>342.5</td>
+<td>1.254 [1.237, 1.271]</td>
+</tr>
+</tbody>
+</table>
 
   
 
