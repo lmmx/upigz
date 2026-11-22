@@ -10,6 +10,10 @@ libz-ng-sys = "1"
 libz-rs-sys = "0"
 miniz_oxide = "0"
 
+[features]
+# Counts symbols, matches and copy shapes (one thread, step() instrumented); never timed
+census = []
+
 [profile.release]
 codegen-units = 1
 lto = "fat"

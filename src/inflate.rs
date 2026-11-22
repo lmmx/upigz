@@ -83,6 +83,23 @@ fn pre_entry(sym: usize, len: u32) -> u32 {
 
 pub type Err = &'static str;
 
+#[cfg(feature = "census")]
+pub mod census {
+    use core::sync::atomic::{AtomicU64, Ordering::Relaxed};
+    pub static LIT: AtomicU64 = AtomicU64::new(0);
+    pub static MATCH: AtomicU64 = AtomicU64::new(0);
+    pub static MATCH_BYTES: AtomicU64 = AtomicU64::new(0);
+    pub static DIST_LT8: AtomicU64 = AtomicU64::new(0);
+    pub static DIST1: AtomicU64 = AtomicU64::new(0);
+    pub static LEN_HIST: [AtomicU64; 6] = [const { AtomicU64::new(0) }; 6]; // 3-4,5-8,9-16,17-32,33-64,65+
+    pub fn add(c: &AtomicU64, n: u64) {
+        c.fetch_add(n, Relaxed);
+    }
+    pub fn get(c: &AtomicU64) -> u64 {
+        c.load(Relaxed)
+    }
+}
+
 /// Build a canonical-Huffman decode table with `bits` main bits and subtables.
 /// Unused slots (an incomplete code) hold INVALID. Returns an error if over-subscribed.
 fn build(table: &mut [u32], lens: &[u8], bits: u32, entry: fn(usize, u32) -> u32) -> Result<(), Err> {
@@ -370,6 +387,8 @@ fn step(
             }
             out[*o] = e_val(e) as u8;
             *o += 1;
+            #[cfg(feature = "census")]
+            census::add(&census::LIT, 1);
             *bb >>= cl;
             *bc -= cl;
             Ok(false)
@@ -396,6 +415,16 @@ fn step(
             }
             if *o + len > limit {
                 return Err("output overrun");
+            }
+            #[cfg(feature = "census")]
+            {
+                use census::*;
+                add(&MATCH, 1);
+                add(&MATCH_BYTES, len as u64);
+                add(&DIST_LT8, (dst < 8) as u64);
+                add(&DIST1, (dst == 1) as u64);
+                let b = match len { 0..=4 => 0, 5..=8 => 1, 9..=16 => 2, 17..=32 => 3, 33..=64 => 4, _ => 5 };
+                add(&LEN_HIST[b], 1);
             }
             let mut s = *o - dst;
             let end = *o + len;
@@ -432,9 +461,95 @@ fn step(
 }
 
 /// Advance N streams, all in a block body, round-robin `B` symbols at a time, until any
+/// one reaches the end of its block. The per-stream body is unrolled by macro with literal
+/// indices, so every stream's state is a scalar that LLVM can keep in a register.
+macro_rules! hot_unrolled {
+    ($name:ident, $n:literal, [$($i:literal),+]) => {
+        #[inline(never)]
+        fn $name<const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err> {
+            let ss: &mut [Stream<'_>; $n] = ss.try_into().unwrap();
+            let inp = ss[0].inp;
+            let mut pos = [0usize; $n];
+            let mut bb = [0u64; $n];
+            let mut bc = [0u32; $n];
+            let mut o = [0usize; $n];
+            let mut limit = [0usize; $n];
+            let mut outs: [&mut [u8]; $n] = core::array::from_fn(|_| <&mut [u8]>::default());
+            for i in 0..$n {
+                debug_assert!(core::ptr::eq(ss[i].inp, inp));
+                pos[i] = ss[i].pos;
+                bb[i] = ss[i].bb;
+                bc[i] = ss[i].bc;
+                o[i] = ss[i].o;
+                limit[i] = ss[i].limit;
+                outs[i] = core::mem::take(&mut ss[i].out);
+            }
+            let mut ended = [false; $n];
+            let r: Result<(), Err> = {
+                let lits: [&[u32; LIT_ENOUGH]; $n] = core::array::from_fn(|i| &*ss[i].lit);
+                let dists: [&[u32; DIST_ENOUGH]; $n] = core::array::from_fn(|i| &*ss[i].dist);
+                'outer: loop {
+                    $(
+                        for _ in 0..B {
+                            match step(inp, lits[$i], dists[$i], outs[$i], limit[$i], &mut pos[$i], &mut bb[$i], &mut bc[$i], &mut o[$i]) {
+                                Ok(false) => {}
+                                Ok(true) => {
+                                    ended[$i] = true;
+                                    break;
+                                }
+                                Err(e) => break 'outer Err(e),
+                            }
+                        }
+                    )+
+                    if false $(|| ended[$i])+ {
+                        break Ok(());
+                    }
+                }
+            };
+            for (i, out) in outs.into_iter().enumerate() {
+                ss[i].out = out;
+                ss[i].pos = pos[i];
+                ss[i].bb = bb[i];
+                ss[i].bc = bc[i];
+                ss[i].o = o[i];
+                if ended[i] {
+                    ss[i].phase = Phase::Header;
+                }
+            }
+            r
+        }
+    };
+}
+hot_unrolled!(hot1, 1, [0]);
+hot_unrolled!(hot2, 2, [0, 1]);
+hot_unrolled!(hot3, 3, [0, 1, 2]);
+hot_unrolled!(hot4, 4, [0, 1, 2, 3]);
+hot_unrolled!(hot5, 5, [0, 1, 2, 3, 4]);
+hot_unrolled!(hot6, 6, [0, 1, 2, 3, 4, 5]);
+hot_unrolled!(hot7, 7, [0, 1, 2, 3, 4, 5, 6]);
+hot_unrolled!(hot8, 8, [0, 1, 2, 3, 4, 5, 6, 7]);
+
+fn hot_dyn<const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err> {
+    match ss.len() {
+        1 => hot1::<B>(ss),
+        2 => hot2::<B>(ss),
+        3 => hot3::<B>(ss),
+        4 => hot4::<B>(ss),
+        5 => hot5::<B>(ss),
+        6 => hot6::<B>(ss),
+        7 => hot7::<B>(ss),
+        8 => hot8::<B>(ss),
+        _ => unreachable!(),
+    }
+}
+
+/// The rolled form (kept as an arm): a runtime loop over streams, so state stays in
+/// stack arrays indexed at run time.
+///
+/// Advance N streams, all in a block body, round-robin `B` symbols at a time, until any
 /// one reaches the end of its block. States are copied into local arrays for the loop.
 #[inline(never)]
-fn hot<const N: usize, const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err> {
+fn hot_rolled<const N: usize, const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err> {
     let ss: &mut [Stream<'_>; N] = ss.try_into().unwrap();
     let inp = ss[0].inp;
     let mut pos = [0usize; N];
@@ -487,23 +602,23 @@ fn hot<const N: usize, const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err>
     r
 }
 
-fn hot_dyn<const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err> {
+fn hot_rolled_dyn<const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err> {
     match ss.len() {
-        1 => hot::<1, B>(ss),
-        2 => hot::<2, B>(ss),
-        3 => hot::<3, B>(ss),
-        4 => hot::<4, B>(ss),
-        5 => hot::<5, B>(ss),
-        6 => hot::<6, B>(ss),
-        7 => hot::<7, B>(ss),
-        8 => hot::<8, B>(ss),
+        1 => hot_rolled::<1, B>(ss),
+        2 => hot_rolled::<2, B>(ss),
+        3 => hot_rolled::<3, B>(ss),
+        4 => hot_rolled::<4, B>(ss),
+        5 => hot_rolled::<5, B>(ss),
+        6 => hot_rolled::<6, B>(ss),
+        7 => hot_rolled::<7, B>(ss),
+        8 => hot_rolled::<8, B>(ss),
         _ => unreachable!(),
     }
 }
 
 /// Decode a group of streams (at most 8) to completion, interleaved. As streams finish,
 /// the group narrows (N drops), so a group of one is exactly the sequential decoder.
-pub fn decode_group<const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err> {
+pub fn decode_group<const B: usize>(ss: &mut [Stream<'_>], rolled: bool) -> Result<(), Err> {
     let mut idx: [usize; 8] = core::array::from_fn(|i| i);
     let mut n = ss.len();
     assert!(n <= 8);
@@ -533,6 +648,10 @@ pub fn decode_group<const B: usize>(ss: &mut [Stream<'_>]) -> Result<(), Err> {
         for (j, v) in idx[..n].iter_mut().enumerate() {
             *v = j;
         }
-        hot_dyn::<B>(&mut ss[..n])?;
+        if rolled {
+            hot_rolled_dyn::<B>(&mut ss[..n])?;
+        } else {
+            hot_dyn::<B>(&mut ss[..n])?;
+        }
     }
 }

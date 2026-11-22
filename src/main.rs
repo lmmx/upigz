@@ -139,21 +139,27 @@ impl Zrs {
 // ---- arms ------------------------------------------------------------------------------
 
 enum Arm {
-    Ours { k: usize, b: usize },
+    Ours { k: usize, b: usize, rolled: bool },
     Libdeflate(libdeflater::Decompressor),
+    LibdeflateThreads(usize),
     ZlibNg(Zng),
     ZlibRs(Zrs),
     Miniz(Box<miniz_oxide::inflate::core::DecompressorOxide>),
 }
 
 fn arm(name: &str) -> Arm {
-    // ours-k<K>[-b<B>], e.g. ours-k1 (sequential), ours-k4, ours-k4-b4; "-aa" suffix = duplicate
+    // ours-k<K>[-b<B>][-r] (-r: the rolled loop), e.g. ours-k1 (sequential), ours-k4, ours-k4-b4; "-aa" suffix = duplicate
     let base = name.trim_end_matches("-aa");
+    let rolled = base.ends_with("-r");
+    let base = base.trim_end_matches("-r");
     if let Some(r) = base.strip_prefix("ours-k") {
         let mut it = r.split("-b");
         let k = it.next().unwrap().parse().unwrap();
         let b = it.next().map_or(1, |x| x.parse().unwrap());
-        return Arm::Ours { k, b };
+        return Arm::Ours { k, b, rolled };
+    }
+    if let Some(t) = base.strip_prefix("libdeflate-t") {
+        return Arm::LibdeflateThreads(t.parse().unwrap());
     }
     match base {
         "libdeflate" => Arm::Libdeflate(libdeflater::Decompressor::new()),
@@ -164,14 +170,14 @@ fn arm(name: &str) -> Arm {
     }
 }
 
-fn ours<const B: usize>(k: usize, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
+fn ours<const B: usize>(k: usize, rolled: bool, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
     for (g, og) in ms.chunks(k).zip(outs.chunks_mut(k)) {
         let mut ss: Vec<Stream<'_>> = g
             .iter()
             .zip(og.iter_mut())
             .map(|(m, o)| Stream::new(inp, m.body, &mut o[..]))
             .collect();
-        decode_group::<B>(&mut ss).unwrap();
+        decode_group::<B>(&mut ss, rolled).unwrap();
         // decode_group reorders streams as they finish: match them to members by start
         for s in &ss {
             let m = g.iter().find(|m| m.body == s.start).unwrap();
@@ -183,11 +189,11 @@ fn ours<const B: usize>(k: usize, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>
 
 fn run(a: &mut Arm, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
     match a {
-        Arm::Ours { k, b } => match *b {
-            1 => ours::<1>(*k, inp, ms, outs),
-            2 => ours::<2>(*k, inp, ms, outs),
-            4 => ours::<4>(*k, inp, ms, outs),
-            8 => ours::<8>(*k, inp, ms, outs),
+        Arm::Ours { k, b, rolled } => match *b {
+            1 => ours::<1>(*k, *rolled, inp, ms, outs),
+            2 => ours::<2>(*k, *rolled, inp, ms, outs),
+            4 => ours::<4>(*k, *rolled, inp, ms, outs),
+            8 => ours::<8>(*k, *rolled, inp, ms, outs),
             _ => panic!("batch must be 1, 2, 4 or 8"),
         },
         Arm::Libdeflate(d) => {
@@ -195,6 +201,25 @@ fn run(a: &mut Arm, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
                 let n = d.deflate_decompress(&inp[m.body..m.end - 8], &mut o[..m.raw]).unwrap();
                 assert_eq!(n, m.raw);
             }
+        }
+        Arm::LibdeflateThreads(t) => {
+            // Members dealt round-robin to t scoped threads (threads spawned per call)
+            let t = *t;
+            let mut lanes: Vec<Vec<(&Member, &mut Vec<u8>)>> = (0..t).map(|_| Vec::new()).collect();
+            for (i, p) in ms.iter().zip(outs.iter_mut()).enumerate() {
+                lanes[i % t].push(p);
+            }
+            std::thread::scope(|sc| {
+                for lane in lanes {
+                    sc.spawn(move || {
+                        let mut d = libdeflater::Decompressor::new();
+                        for (m, o) in lane {
+                            let n = d.deflate_decompress(&inp[m.body..m.end - 8], &mut o[..m.raw]).unwrap();
+                            assert_eq!(n, m.raw);
+                        }
+                    });
+                }
+            });
         }
         Arm::ZlibNg(z) => {
             for (m, o) in ms.iter().zip(outs) {
@@ -247,6 +272,19 @@ fn main() {
         }
     }
     eprintln!("{path}: {} members, {total} bytes, all {} arms byte-exact", ms.len(), arms.len());
+    #[cfg(feature = "census")]
+    {
+        use inflate::census::*;
+        let (l, m, mb) = (get(&LIT), get(&MATCH), get(&MATCH_BYTES));
+        let sy = l + m;
+        let h: Vec<String> = LEN_HIST.iter().map(|c| format!("{:.3}", get(c) as f64 / m as f64)).collect();
+        println!(
+            "census {path}: symbols/byte {:.4} literal-share {:.3} mean-match-len {:.2} match-bytes-share {:.3} dist<8 {:.3} dist=1 {:.3} len-hist[3-4,5-8,9-16,17-32,33-64,65+] {}",
+            sy as f64 / (l + mb) as f64, l as f64 / sy as f64, mb as f64 / m as f64, mb as f64 / (l + mb) as f64,
+            get(&DIST_LT8) as f64 / m as f64, get(&DIST1) as f64 / m as f64, h.join(",")
+        );
+        return;
+    }
 
     let mut seed = 0x9E3779B97F4A7C15u64;
     let mut order: Vec<usize> = (0..arms.len()).collect();
