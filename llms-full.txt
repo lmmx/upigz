@@ -103,26 +103,30 @@ rapidgzip scales poorly on this host (its P2 is slower than its sequential P1 pa
 
 How the parallel decoder got there, upigz -P4 against rapidgzip -P4:
 
-| version | upigz -P4 time vs rapidgzip -P4 |
+| time vs rapidgzip -P4 | version |
 | --- | --- |
-| all chunks alive at once, decode then CRC then write run in sequence (1.69 GB/s in memory, warm buffers) | 1.591 \[1.194, 2.119\] |
-| **bounded**: at most threads+2 chunks in flight, recycled buffers, streamed output | 0.849 \[0.793, 0.909\] |
-| resolution as a queued task (a regression: it exposed a serial chain) | 1.130 \[1.029, 1.241\] |
-| **window hand-off taken off the resolution chain** (next window derived before a chunk is queued; separate cursors for windows and writes) | **0.677 \[0.616, 0.744\]** |
+| 1.591 \[1.194, 2.119\] | 1\. all chunks alive at once |
+| 0.849 \[0.793, 0.909\] | 2\. **bounded** |
+| 1.130 \[1.029, 1.241\] | 3\. resolution as a queued task |
+| **0.677** \[0.616, 0.744\] | 4\. **window hand-off off the chain** |
+
+1. Every chunk's buffers were alive at once, and decode, then CRC, then write ran one after another. In memory, with warm buffers, it reached 1.69 GB/s.
+2. At most threads + 2 chunks in flight, recycled buffers, streamed output.
+3. A regression: it exposed a serial chain.
+4. The next window is derived before a chunk is queued, with separate cursors for windows and writes.
 
 ## Single thread, in memory
 
-Time vs libdeflate 1.26.1; GB/s for libdeflate. From [the second entry](<https://lmmx.github.io/upigz/journal/kernel-and-parallel/index.md>).
+Time vs libdeflate 1.26.1, in the same binary. The upigz rows are from [the kernel's parity entry](<https://github.com/lmmx/upigz/blob/master/docs/journal/2026-11-22-kernel-parity.md>) (`runs/k1-*.txt`, 11 rounds), after \#16. The ISA-L and zlib-rs rows are from the first race ([the second entry](<https://lmmx.github.io/upigz/journal/kernel-and-parallel/index.md>), `runs/sota-*.txt`). Each is a ratio against libdeflate measured in its own binary, so they compare across the two runs.
 
 |  | Wikidata -6 | source -6 | binary -6 |
 | --- | --- | --- | --- |
-| libdeflate | 1.106 GB/s | 0.657 | 0.546 |
-| upigz kernel (unchecked) | 1.123 \[1.066, 1.183\] | 1.093 \[1.065, 1.122\] | 1.043 \[0.979, 1.112\] |
-| upigz kernel (safe) | about 1.19–1.23 |  |  |
+| **upigz kernel, unchecked build** | **1.000** \[0.986, 1.014\] | **0.997** \[0.961, 1.034\] | **1.030** \[0.984, 1.078\] |
+| upigz kernel, safe build (the default) | 1.102 \[1.086, 1.119\] | 1.162 \[1.112, 1.214\] | 1.179 \[1.096, 1.267\] |
 | ISA-L 2.31 | 1.172 | 1.138 | 1.149 |
 | zlib-rs 0.6.8 | 1.366 | 1.410 | 1.391 |
 
-The single-thread table as a chart, generated from `runs/sota-*.txt`. Eleven paired rounds per corpus; the dashed line is libdeflate, whiskers are 95% intervals.
+The single-thread table as a chart, generated from `runs/k1-*.txt` and `runs/sota-*.txt` by `docs/scripts/figures.py`. The dashed line is libdeflate; whiskers are 95% intervals. The unchecked kernel is level with libdeflate, not ahead of it.
 
 What moved the kernel, step by step (unchecked-build time vs libdeflate, on Wikidata / source / binary):
 
@@ -134,6 +138,7 @@ What moved the kernel, step by step (unchecked-build time vs libdeflate, on Wiki
 | **libdeflate's literal→match fallthrough** (no refill on the transition) | **1.21 / 1.13 / 1.15** |
 | **table build: libdeflate's doubling method for complete codes** | **1.07 / 1.09 / 1.09** |
 | generic (inlined) entry constructors, 4 precode symbols per refill | 1.06 / 1.08 / 1.14 (noisy run) |
+| **one `bzhi` for the extra bits** (\#16; the host restarted, so a fresh baseline: 1.079 / 1.098 / 1.113) | **1.000 / 0.997 / 1.030** |
 
 ## What the i9 run will decide
 

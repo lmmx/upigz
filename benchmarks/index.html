@@ -66,9 +66,9 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/extra.css?v=92fd237c59d0">
+      <link rel="stylesheet" href="../assets/stylesheets/extra.css?v=3fd07ff0445c">
     
-      <link rel="stylesheet" href="../assets/stylesheets/blog.css?v=92fd237c59d0">
+      <link rel="stylesheet" href="../assets/stylesheets/blog.css?v=3fd07ff0445c">
     
     <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
@@ -882,31 +882,43 @@ i9's 10 cores decide the real ranking.</p>
 <table>
 <thead>
 <tr>
+<th>time vs rapidgzip -P4</th>
 <th>version</th>
-<th>upigz -P4 time vs rapidgzip -P4</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>all chunks alive at once, decode then CRC then write run in sequence (1.69 GB/s in memory, warm buffers)</td>
 <td>1.591 [1.194, 2.119]</td>
+<td>1. all chunks alive at once</td>
 </tr>
 <tr>
-<td><strong>bounded</strong>: at most threads+2 chunks in flight, recycled buffers, streamed output</td>
 <td>0.849 [0.793, 0.909]</td>
+<td>2. <strong>bounded</strong></td>
 </tr>
 <tr>
-<td>resolution as a queued task (a regression: it exposed a serial chain)</td>
 <td>1.130 [1.029, 1.241]</td>
+<td>3. resolution as a queued task</td>
 </tr>
 <tr>
-<td><strong>window hand-off taken off the resolution chain</strong> (next window derived before a chunk is queued; separate cursors for windows and writes)</td>
-<td><strong>0.677 [0.616, 0.744]</strong></td>
+<td><strong>0.677</strong> [0.616, 0.744]</td>
+<td>4. <strong>window hand-off off the chain</strong></td>
 </tr>
 </tbody>
 </table>
+<ol>
+<li>Every chunk's buffers were alive at once, and decode, then CRC, then write ran one after
+   another. In memory, with warm buffers, it reached 1.69 GB/s.</li>
+<li>At most threads + 2 chunks in flight, recycled buffers, streamed output.</li>
+<li>A regression: it exposed a serial chain.</li>
+<li>The next window is derived before a chunk is queued, with separate cursors for windows and
+   writes.</li>
+</ol>
 <h2 id="single-thread-in-memory">Single thread, in memory<a class="headerlink" href="#single-thread-in-memory" title="Permanent link">&para;</a></h2>
-<p>Time vs libdeflate 1.26.1; GB/s for libdeflate. From <a href="../journal/kernel-and-parallel/">the second entry</a>.</p>
+<p>Time vs libdeflate 1.26.1, in the same binary. The upigz rows are from
+<a href="https://github.com/lmmx/upigz/blob/master/docs/journal/2026-11-22-kernel-parity.md">the kernel's parity entry</a>
+(<code>runs/k1-*.txt</code>, 11 rounds), after #16. The ISA-L and zlib-rs rows are from the first race
+(<a href="../journal/kernel-and-parallel/">the second entry</a>, <code>runs/sota-*.txt</code>). Each is a ratio
+against libdeflate measured in its own binary, so they compare across the two runs.</p>
 <table>
 <thead>
 <tr>
@@ -918,22 +930,16 @@ i9's 10 cores decide the real ranking.</p>
 </thead>
 <tbody>
 <tr>
-<td>libdeflate</td>
-<td>1.106 GB/s</td>
-<td>0.657</td>
-<td>0.546</td>
+<td><strong>upigz kernel, unchecked build</strong></td>
+<td><strong>1.000</strong> [0.986, 1.014]</td>
+<td><strong>0.997</strong> [0.961, 1.034]</td>
+<td><strong>1.030</strong> [0.984, 1.078]</td>
 </tr>
 <tr>
-<td>upigz kernel (unchecked)</td>
-<td>1.123 [1.066, 1.183]</td>
-<td>1.093 [1.065, 1.122]</td>
-<td>1.043 [0.979, 1.112]</td>
-</tr>
-<tr>
-<td>upigz kernel (safe)</td>
-<td>about 1.19–1.23</td>
-<td></td>
-<td></td>
+<td>upigz kernel, safe build (the default)</td>
+<td>1.102 [1.086, 1.119]</td>
+<td>1.162 [1.112, 1.214]</td>
+<td>1.179 [1.096, 1.267]</td>
 </tr>
 <tr>
 <td>ISA-L 2.31</td>
@@ -950,10 +956,12 @@ i9's 10 cores decide the real ranking.</p>
 </tbody>
 </table>
 <figure class="bf-fig">
-<svg viewBox="0 0 720 296" role="img" aria-label="Wikidata JSON, upigz kernel: 1.123 [1.066, 1.183]; Wikidata JSON, ISA-L 2.31: 1.172 [1.093, 1.258]; Wikidata JSON, zlib-rs 0.6.8: 1.366 [1.312, 1.423]; source code, upigz kernel: 1.093 [1.065, 1.122]; source code, ISA-L 2.31: 1.138 [1.094, 1.183]; source code, zlib-rs 0.6.8: 1.410 [1.378, 1.443]; binaries, upigz kernel: 1.043 [0.979, 1.112]; binaries, ISA-L 2.31: 1.149 [1.065, 1.240]; binaries, zlib-rs 0.6.8: 1.391 [1.289, 1.502]"><text x="150" y="14" class="bf-tm">time vs libdeflate 1.26.1, one thread, in memory (lower is better; 1.0 = libdeflate)</text><text x="0" y="48" class="bf-ts">Wikidata JSON</text><text x="140" y="48" class="bf-t" text-anchor="end">upigz kernel</text><path d="M282.8 44H376.4" class="bf-whisker"/><circle cx="328.4" cy="44" r="5" class="bf-green"/><text x="720" y="48" class="bf-t-strong" text-anchor="end">1.123</text><text x="140" y="70" class="bf-t" text-anchor="end">ISA-L 2.31</text><path d="M304.4 66H436.4" class="bf-whisker"/><circle cx="367.6" cy="66" r="5" class="bf-steel"/><text x="720" y="70" class="bf-t-strong" text-anchor="end">1.172</text><text x="140" y="92" class="bf-t" text-anchor="end">zlib-rs 0.6.8</text><path d="M479.6 88H568.4" class="bf-whisker"/><circle cx="522.8" cy="88" r="5" class="bf-steel"/><text x="720" y="92" class="bf-t-strong" text-anchor="end">1.366</text><text x="0" y="130" class="bf-ts">source code</text><text x="140" y="130" class="bf-t" text-anchor="end">upigz kernel</text><path d="M282.0 126H327.6" class="bf-whisker"/><circle cx="304.4" cy="126" r="5" class="bf-green"/><text x="720" y="130" class="bf-t-strong" text-anchor="end">1.093</text><text x="140" y="152" class="bf-t" text-anchor="end">ISA-L 2.31</text><path d="M305.2 148H376.4" class="bf-whisker"/><circle cx="340.4" cy="148" r="5" class="bf-steel"/><text x="720" y="152" class="bf-t-strong" text-anchor="end">1.138</text><text x="140" y="174" class="bf-t" text-anchor="end">zlib-rs 0.6.8</text><path d="M532.4 170H584.4" class="bf-whisker"/><circle cx="558.0" cy="170" r="5" class="bf-steel"/><text x="720" y="174" class="bf-t-strong" text-anchor="end">1.410</text><text x="0" y="212" class="bf-ts">binaries</text><text x="140" y="212" class="bf-t" text-anchor="end">upigz kernel</text><path d="M213.2 208H319.6" class="bf-whisker"/><circle cx="264.4" cy="208" r="5" class="bf-green"/><text x="720" y="212" class="bf-t-strong" text-anchor="end">1.043</text><text x="140" y="234" class="bf-t" text-anchor="end">ISA-L 2.31</text><path d="M282.0 230H422.0" class="bf-whisker"/><circle cx="349.2" cy="230" r="5" class="bf-steel"/><text x="720" y="234" class="bf-t-strong" text-anchor="end">1.149</text><text x="140" y="256" class="bf-t" text-anchor="end">zlib-rs 0.6.8</text><path d="M461.2 252H631.6" class="bf-whisker"/><circle cx="542.8" cy="252" r="5" class="bf-steel"/><text x="720" y="256" class="bf-t-strong" text-anchor="end">1.391</text><path d="M230.0 28V268" class="bf-ref"/><path d="M150 272H670" class="bf-axis"/><path d="M230.0 272v5" class="bf-axis"/><text x="230.0" y="290" class="bf-tm" text-anchor="middle">1.0</text><path d="M310.0 272v5" class="bf-axis"/><text x="310.0" y="290" class="bf-tm" text-anchor="middle">1.1</text><path d="M390.0 272v5" class="bf-axis"/><text x="390.0" y="290" class="bf-tm" text-anchor="middle">1.2</text><path d="M470.0 272v5" class="bf-axis"/><text x="470.0" y="290" class="bf-tm" text-anchor="middle">1.3</text><path d="M550.0 272v5" class="bf-axis"/><text x="550.0" y="290" class="bf-tm" text-anchor="middle">1.4</text><path d="M630.0 272v5" class="bf-axis"/><text x="630.0" y="290" class="bf-tm" text-anchor="middle">1.5</text></svg>
+<svg viewBox="0 0 720 420" role="img" aria-label="Wikidata JSON, upigz, unchecked build: 1.000 [0.986, 1.014]; Wikidata JSON, upigz, safe build: 1.102 [1.086, 1.119]; Wikidata JSON, ISA-L 2.31 (first race): 1.172 [1.093, 1.258]; Wikidata JSON, zlib-rs 0.6.8 (first race): 1.366 [1.312, 1.423]; source code, upigz, unchecked build: 0.997 [0.961, 1.034]; source code, upigz, safe build: 1.162 [1.112, 1.214]; source code, ISA-L 2.31 (first race): 1.138 [1.094, 1.183]; source code, zlib-rs 0.6.8 (first race): 1.410 [1.378, 1.443]; binaries, upigz, unchecked build: 1.030 [0.984, 1.078]; binaries, upigz, safe build: 1.179 [1.096, 1.267]; binaries, ISA-L 2.31 (first race): 1.149 [1.065, 1.240]; binaries, zlib-rs 0.6.8 (first race): 1.391 [1.289, 1.502]"><text x="190" y="14" class="bf-tm">time vs libdeflate 1.26.1, one thread, in memory (lower is better; 1.0 = libdeflate)</text><text x="0" y="48" class="bf-ts">Wikidata JSON</text><text x="180" y="70" class="bf-t" text-anchor="end">upigz, unchecked build</text><path d="M252.2 66H272.4" class="bf-whisker"/><circle cx="262.3" cy="66" r="5" class="bf-green"/><text x="720" y="70" class="bf-t-strong" text-anchor="end">1.000</text><text x="180" y="92" class="bf-t" text-anchor="end">upigz, safe build</text><path d="M324.5 88H348.4" class="bf-whisker"/><circle cx="336.1" cy="88" r="5" class="bf-green"/><text x="720" y="92" class="bf-t-strong" text-anchor="end">1.102</text><text x="180" y="114" class="bf-t" text-anchor="end">ISA-L 2.31 (first race)</text><path d="M329.6 110H448.9" class="bf-whisker"/><circle cx="386.7" cy="110" r="5" class="bf-steel"/><text x="720" y="114" class="bf-t-strong" text-anchor="end">1.172</text><text x="180" y="136" class="bf-t" text-anchor="end">zlib-rs 0.6.8 (first race)</text><path d="M487.9 132H568.2" class="bf-whisker"/><circle cx="527.0" cy="132" r="5" class="bf-steel"/><text x="720" y="136" class="bf-t-strong" text-anchor="end">1.366</text><text x="0" y="170" class="bf-ts">source code</text><text x="180" y="192" class="bf-t" text-anchor="end">upigz, unchecked build</text><path d="M234.1 188H286.9" class="bf-whisker"/><circle cx="260.1" cy="188" r="5" class="bf-green"/><text x="720" y="192" class="bf-t-strong" text-anchor="end">0.997</text><text x="180" y="214" class="bf-t" text-anchor="end">upigz, safe build</text><path d="M343.3 210H417.0" class="bf-whisker"/><circle cx="379.4" cy="210" r="5" class="bf-green"/><text x="720" y="214" class="bf-t-strong" text-anchor="end">1.162</text><text x="180" y="236" class="bf-t" text-anchor="end">ISA-L 2.31 (first race)</text><path d="M330.3 232H394.6" class="bf-whisker"/><circle cx="362.1" cy="232" r="5" class="bf-steel"/><text x="720" y="236" class="bf-t-strong" text-anchor="end">1.138</text><text x="180" y="258" class="bf-t" text-anchor="end">zlib-rs 0.6.8 (first race)</text><path d="M535.6 254H582.6" class="bf-whisker"/><circle cx="558.8" cy="254" r="5" class="bf-steel"/><text x="720" y="258" class="bf-t-strong" text-anchor="end">1.410</text><text x="0" y="292" class="bf-ts">binaries</text><text x="180" y="314" class="bf-t" text-anchor="end">upigz, unchecked build</text><path d="M250.7 310H318.7" class="bf-whisker"/><circle cx="284.0" cy="310" r="5" class="bf-green"/><text x="720" y="314" class="bf-t-strong" text-anchor="end">1.030</text><text x="180" y="336" class="bf-t" text-anchor="end">upigz, safe build</text><path d="M331.7 332H455.4" class="bf-whisker"/><circle cx="391.7" cy="332" r="5" class="bf-green"/><text x="720" y="336" class="bf-t-strong" text-anchor="end">1.179</text><text x="180" y="358" class="bf-t" text-anchor="end">ISA-L 2.31 (first race)</text><path d="M309.3 354H435.8" class="bf-whisker"/><circle cx="370.0" cy="354" r="5" class="bf-steel"/><text x="720" y="358" class="bf-t-strong" text-anchor="end">1.149</text><text x="180" y="380" class="bf-t" text-anchor="end">zlib-rs 0.6.8 (first race)</text><path d="M471.3 376H625.3" class="bf-whisker"/><circle cx="545.0" cy="376" r="5" class="bf-steel"/><text x="720" y="380" class="bf-t-strong" text-anchor="end">1.391</text><path d="M262.3 28V392" class="bf-ref"/><path d="M190 396H660" class="bf-axis"/><path d="M262.3 396v5" class="bf-axis"/><text x="262.3" y="414" class="bf-tm" text-anchor="middle">1.0</text><path d="M334.6 396v5" class="bf-axis"/><text x="334.6" y="414" class="bf-tm" text-anchor="middle">1.1</text><path d="M406.9 396v5" class="bf-axis"/><text x="406.9" y="414" class="bf-tm" text-anchor="middle">1.2</text><path d="M479.2 396v5" class="bf-axis"/><text x="479.2" y="414" class="bf-tm" text-anchor="middle">1.3</text><path d="M551.5 396v5" class="bf-axis"/><text x="551.5" y="414" class="bf-tm" text-anchor="middle">1.4</text><path d="M623.8 396v5" class="bf-axis"/><text x="623.8" y="414" class="bf-tm" text-anchor="middle">1.5</text></svg>
 
-<figcaption>The single-thread table as a chart, generated from <code>runs/sota-*.txt</code>.
-Eleven paired rounds per corpus; the dashed line is libdeflate, whiskers are 95% intervals.</figcaption>
+<figcaption>The single-thread table as a chart, generated from <code>runs/k1-*.txt</code> and
+<code>runs/sota-*.txt</code> by <code>docs/scripts/figures.py</code>. The dashed line is
+libdeflate; whiskers are 95% intervals. The unchecked kernel is level with libdeflate, not
+ahead of it.</figcaption>
 </figure>
 
 <p>What moved the kernel, step by step (unchecked-build time vs libdeflate, on Wikidata / source /
@@ -989,6 +997,10 @@ binary):</p>
 <tr>
 <td>generic (inlined) entry constructors, 4 precode symbols per refill</td>
 <td>1.06 / 1.08 / 1.14 (noisy run)</td>
+</tr>
+<tr>
+<td><strong>one <code>bzhi</code> for the extra bits</strong> (#16; the host restarted, so a fresh baseline: 1.079 / 1.098 / 1.113)</td>
+<td><strong>1.000 / 0.997 / 1.030</strong></td>
 </tr>
 </tbody>
 </table>
