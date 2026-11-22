@@ -66,11 +66,11 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/extra.css?v=2913d1e31452">
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css?v=7e092a6ea423">
     
-      <link rel="stylesheet" href="../../assets/stylesheets/blog.css?v=2913d1e31452">
+      <link rel="stylesheet" href="../../assets/stylesheets/blog.css?v=7e092a6ea423">
     
-      <link rel="stylesheet" href="../../assets/stylesheets/bench.css?v=2913d1e31452">
+      <link rel="stylesheet" href="../../assets/stylesheets/bench.css?v=7e092a6ea423">
     
     <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
@@ -778,8 +778,16 @@ machinery, the records' layout and these charts are lmmx/mibz2's.</p>
 <li><strong>A line never joins</strong> another bench meaning (a version that redefined the figures;
   <a href="https://github.com/lmmx/upigz/blob/master/bench/CHANGELOG.md">the benchmark's changelog</a>)
   or another content of a corpus.</li>
-<li><strong>Not yet:</strong> pull requests' own paired runs, head against base, chained merge by merge,
-  as in mibz2's history. Until they run, the chart has master's records only.</li>
+<li><strong>Merge by merge, chained</strong> (the chart at the top). Each pull request's benchmark runs its
+  head against its base on one runner, both builds, for 10 rounds in a shuffled order. Each
+  merge keeps that paired change (<a href="https://github.com/lmmx/upigz/blob/master/bench/links.py"><code>bench/links.py</code></a>),
+  and the chart multiplies the changes. The band is the product's 95% interval. Merges from
+  before pull requests were benchmarked are backfilled: the merge against its first parent,
+  run the same way. A merge that left the decoder alone is an A/A pair, drawn hollow, and
+  adds nothing.</li>
+<li><strong>Absolute figures</strong> (the charts below it) are master's records: each merge's upigz in
+  MB/s, CPU seconds and peak RSS, on whichever runner the run drew. The backfilled merges
+  share one runner, so they are directly comparable.</li>
 </ul>
 <div data-src="../../assets/bench-history.json" id="bench-history">
 <p>Loading the benchmark history…</p>
@@ -924,7 +932,7 @@ run.</p>
     
       <script src="../../assets/javascripts/bundle.a2388154.min.js"></script>
       
-        <script src="../../assets/javascripts/bench.js?v=2913d1e31452"></script>
+        <script src="../../assets/javascripts/bench.js?v=7e092a6ea423"></script>
       
     
   </body>
