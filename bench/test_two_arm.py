@@ -1,6 +1,6 @@
 """bench/two_arm.py on synthetic runs: each verdict where its rule puts it, Holm's arithmetic, a
 moved control cell, and every defect the validity checks guard against leaves no verdict: the
-Researcher's fabricated bundle (#145 REVIEW 6921090225) among them, and a fabricated bundle for
+Researcher's fabricated bundle (lmmx/mibz2#145 REVIEW 6921090225) among them, and a fabricated bundle for
 each missing or malformed piece of the machine's and the runs' metadata (REVIEW 6924511372).
 
     python3 bench/test_two_arm.py
@@ -29,7 +29,7 @@ ENV = {"cpus": 20, "cores": 10, "core_cpus": [f"{c},{c + 10}" for c in range(10)
 def pinned(t):
     """`ab run --spread`'s CPUs at t threads on the i9: the first of each of the first t cores"""
     return ",".join(str(c) for c in range(t)) if t <= 10 else "all"
-ARGS = ["--ref", "mibz2@build-master", "--cand", "mibz2", "--main", "wikidata-x4", "--guard", "text",
+ARGS = ["--ref", "upigz@build-master", "--cand", "upigz", "--main", "wikidata-x4", "--guard", "text",
         "--judged", "12,16,20", "--controls", "9,10"]
 
 
@@ -47,8 +47,8 @@ def runs(main=None, guard=None, mem=1.0, noise=0.01, seed=7):
             for t in JUDGED + CONTROLS:
                 base = 0.5 * (1 + 0.02 * rng.uniform(-1, 1))
                 wig = 1 + noise * (1 if i % 2 else -1)
-                for arm, wall, rss in ((f"mibz2@{REF_EXE}", base, 100000 * t),
-                                       ("mibz2", base * steps.get(t, 1.0) * wig, 100000 * t * (mem if t in JUDGED else 1.0))):
+                for arm, wall, rss in ((f"upigz@{REF_EXE}", base, 100000 * t),
+                                       ("upigz", base * steps.get(t, 1.0) * wig, 100000 * t * (mem if t in JUDGED else 1.0))):
                     r = {"round": i, "corpus": corpus, "threads": t, "arm": arm, "termination": "success",
                          "wall": wall, "cpu": wall * t * 0.9, "rss_kb": rss, "out": outs[corpus][0],
                          "hash": outs[corpus][1], "cpus": pinned(t)}
@@ -93,8 +93,8 @@ def main():
     h = ta.holm({12: 0.009, 16: 0.02, 20: 0.5}, 0.05)
     results.append(h == {12, 16})
     print(f"{'ok  ' if results[-1] else 'FAIL'} Holm: rejects {sorted(h)} of 0.009, 0.02, 0.5 (12 and 16)")
-    results.append(ta.canonical(f"mibz2@{REF_EXE}") == "mibz2@build-master" and ta.canonical("mibz2") == "mibz2")
-    print(f"{'ok  ' if results[-1] else 'FAIL'} canonical arms: {ta.canonical(f'mibz2@{REF_EXE}')}, mibz2")
+    results.append(ta.canonical(f"upigz@{REF_EXE}") == "upigz@build-master" and ta.canonical("upigz") == "upigz")
+    print(f"{'ok  ' if results[-1] else 'FAIL'} canonical arms: {ta.canonical(f'upigz@{REF_EXE}')}, upigz")
 
     results.append(expect("adopts", runs(main={12: 0.96, 20: 0.96}), 0, "VERDICT: ADOPTS. A gain at [12, 20] threads"))
     results.append(expect("held on memory", runs(main={12: 0.96}, mem=1.2), 0, "VERDICT: HELD ON MEMORY"))
@@ -122,7 +122,7 @@ def main():
     cases = [
         ("a record duplicated", mutate(lambda r: r.append(r[3])), "duplicated"),
         ("a record missing", mutate(lambda r: r.pop(5)), "roster keys missing"),
-        ("an unexpected arm", mutate(lambda r: set_field(r, 1, "arm", "mibz2-workers")), "not in the roster"),
+        ("an unexpected arm", mutate(lambda r: set_field(r, 1, "arm", "upigz-workers")), "not in the roster"),
         ("a corpus mislabelled", mutate(lambda r: set_field(r, 0, "corpus", "fake")), "not in the roster"),
         ("a failed run", mutate(lambda r: set_field(r, 2, "termination", "killed")), "did not succeed"),
         ("an error", mutate(lambda r: set_field(r, 2, "err", "exit 17")), "did not succeed"),

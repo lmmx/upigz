@@ -5,7 +5,7 @@
 
 A strict build passes on a page whose Markdown rendered as something other than what its
 author meant: a list with no blank line before it becomes one paragraph, a wrapped line
-that starts with `#145` becomes a heading, an unclosed `**` shows its asterisks. This
+that starts with `#12` becomes a heading, an unclosed `**` shows its asterisks. This
 reads the built HTML (default: every page under site/; or the pages given, as paths
 relative to the site such as `blog/2026-11-04-autonomous-agent-team/`) and reports, with
 the text it found:
@@ -21,7 +21,7 @@ the text it found:
 It also reads the Markdown sources under docs/site/ for two hazards that render as valid
 but wrong HTML, which the built page can no longer show:
 
-- a line that starts with `#` and no space (`#145, so…` after a rewrap): a heading;
+- a line that starts with `#` and no space (`#12, so…` after a rewrap): a heading;
 - a nested list item indented by fewer than 4 spaces: a sibling of its parent, not a
   child.
 
@@ -159,7 +159,7 @@ def check_page(path, label, problems):
 
 FENCE = re.compile(r"^[ \t]*(```|~~~)")
 ITEM = re.compile(r"^( *)(?:[-*+]|\d+[.)])[ \t]+\S")
-# Python-Markdown reads "#145" at the start of a line as a heading: no space is needed.
+# Python-Markdown reads "#12" at the start of a line as a heading: no space is needed.
 HASH_LINE = re.compile(r"^#{1,6}[^#\s]")
 
 

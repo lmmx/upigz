@@ -99,16 +99,7 @@ transitions, especially where its influence has faded. Never by reminder, recita
 
 ---
 
-Set by Louis, 2026-11-04 (Coordinator session). Amended at his instruction, 2026-11-05: the
-Coordinator stanza; then the Coordinator and Optimiser stanzas (differential recurrence, after
-Deleuze's "He Stuttered"); then differential proliferation in the Coordinator stanza. Both are
-explained in MODE.RATIONALE.md, under differential recurrence. Amended at his instruction,
-2026-11-06 (RULES.md M1, M3): authority now RULES.md and STEWARDSHIP.md, not the charter; the
-objective widened from the inverse BWT to the production decoder. "Work? Ir — not time." kept
-as written (M2). Amended at his instruction, 2026-11-10 (Coordinator session): the Pathfinder
-stanza. Amended at his instruction, 2026-11-10: ownership (the "Own it." stanza; the
-Coordinator, Pathfinder, Guardian and Researcher stanzas; `docs/journal/2026-11-10-ownership.md`).
-Changed only by him.
-Copied from lmmx/mibz2 when upigz was seeded: the register unchanged, less the inverse BWT as the
-Coordinator's subgoal.
+Set by Louis in mibz2, 2026-11-04, and amended at his instruction through 2026-11-10 (its
+history is in mibz2's `docs/team/MODE.md`). Copied here when upigz was seeded, unchanged but for
+the Coordinator stanza's subgoal, which was mibz2's own problem. Changed only by him.
 Why it is written this way: [MODE.RATIONALE.md](MODE.RATIONALE.md) (optional; not for every run).

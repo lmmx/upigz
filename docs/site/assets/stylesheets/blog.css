@@ -736,7 +736,7 @@
    scroll and widens the whole page. Positioning the wrapper keeps it inside. */
 .md-typeset .md-typeset__scrollwrap { position: relative; }
 
-/* Frames (the inverse-BWT post): one art-directed sequence of small static frames, each drawn
+/* Frames (a post's figure sequence): one art-directed sequence of small static frames, each drawn
    on the same 230-unit width so every figure has the same scale. Typeset rails of letters, small
    indices, smooth connectors with small heads; green marks the one run being matched, ink the
    active interval, everything else is quiet. Three across on a wide screen, stacked on a phone. */

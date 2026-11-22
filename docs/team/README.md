@@ -28,9 +28,8 @@ measurably faster, correct production decoder, properly released. MODE.md says t
 - **Louis's requests from ChatGPT:** PROTOCOL.md §7 is the rule; mibz2's `CHATGPT.md` is the
   procedure a ChatGPT conversation follows to send one (not yet copied here).
 - **History:** this machinery was built in lmmx/mibz2 (a parallel bzip2 decoder) and copied
-  here, adapted, when upigz was seeded. Issue and PR numbers are placeholders (`#2`,
-  `#3`, ...) until they exist; a number written `lmmx/mibz2#N` is a precedent
-  in mibz2's record, and the dated rulings of Louis's cited throughout were made there. Files
+  here, adapted, when upigz was seeded. The channel is #2 and the inboxes #3-#9; a number
+  written `lmmx/mibz2#N` is a precedent in mibz2's record, and the dated rulings of Louis's cited throughout were made there. Files
   cited under `docs/journal/` that this repository doesn't have (the compact30 record, the
   dated ownership and handoff entries) are mibz2's. `decisions.md` is mibz2's until upigz's is
   started (SETUP-TODO.md item 5).
