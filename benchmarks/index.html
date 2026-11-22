@@ -66,9 +66,9 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/extra.css?v=4c5095ea3c3e">
+      <link rel="stylesheet" href="../assets/stylesheets/extra.css?v=9b840c08de0b">
     
-      <link rel="stylesheet" href="../assets/stylesheets/blog.css?v=4c5095ea3c3e">
+      <link rel="stylesheet" href="../assets/stylesheets/blog.css?v=9b840c08de0b">
     
     <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
@@ -1005,7 +1005,7 @@ counts, and against igzip, on the single-member Wikidata file. It will settle tw
   the next lever is the 16-bit pass-1 kernel or memory traffic: the re-decode bet in the
   <a href="https://github.com/lmmx/upigz/blob/master/docs/team/research-charter/FRONTIER.md">research charter's frontier</a>.</li>
 </ul>
-<p>The recipe and its rule will be linked here once registered.</p>
+<p>The recipe is registered, with its rule, in <a href="https://github.com/lmmx/upigz/blob/master/docs/journal/2026-11-22-i9-race-registration.md">the i9 race's registration</a>: <code>just submit bench-i9-race</code>, judged by <code>bench/i9_race.py</code>. It is VALID PASS if the 95% interval of time(upigz-P10) / time(rapidgzip-P10) lies wholly below 1.00, with an A/A control inside [0.95, 1.05]. It is queued for the workstation, and its result will be posted here.</p>
 <h2 id="earlier-the-first-kernel-and-the-field">Earlier: the first kernel and the field<a class="headerlink" href="#earlier-the-first-kernel-and-the-field" title="Permanent link">&para;</a></h2>
 <p>These are from <a href="../journal/interleaved-inflate/">the first entry</a>, before the kernel above: <code>ours-k1</code> is the first probe decoder.</p>
 <p>In memory (raw DEFLATE, time vs libdeflate; GB/s for libdeflate):</p>
