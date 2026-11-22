@@ -1,0 +1,189 @@
+{
+ "bench": "1.0.0",
+ "mode": "pr",
+ "head": "0f0cfd76935dcfadd30876be05dde7285f11d311",
+ "base": "2b6694a132de43c4123c8dcf6e3e4fbfb804d926",
+ "date": "2026-11-22T19:57:10Z",
+ "run": "https://github.com/lmmx/upigz/actions/runs/45063041276",
+ "rounds": 10,
+ "threads": [
+  1,
+  2,
+  4
+ ],
+ "machine": {
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "cores": 4,
+  "kernel": "7.0.0-1020-azure"
+ },
+ "toolchain": {
+  "rustc": "1.99.1"
+ },
+ "arms": [
+  "upigz@base"
+ ],
+ "parallel": {
+  "upigz": true,
+  "upigz@base": true
+ },
+ "reference": "upigz",
+ "corpora": {
+  "wikidata": {
+   "file": "wd-256.json.gz",
+   "bytes": 40095641,
+   "out": 268385295,
+   "sha256": "5de4eebf486518c14592d6b3df4f289b26840e8b9fc2fbbc3d9e792b9efea868",
+   "gz_sha256": "630328ac20fc17662911ea662e00a8ac94abddcdd7b1daf26dd37af2b8d6fd13",
+   "source": "wikidata-20261116-all.json.gz: the first 256 MiB, whole lines, gzip -6 -n (bench/ci_corpus.py)"
+  }
+ },
+ "parity": true,
+ "figures": {
+  "wikidata": {
+   "1": {
+    "arms": {
+     "upigz": {
+      "arm": "upigz",
+      "parallel": true,
+      "threads_run": 1,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.4759,
+      "wall_best": 0.4671,
+      "cpu": 0.4785,
+      "rss_mb": 132.5,
+      "out": 268385295,
+      "mb_s": 564.0,
+      "errors": []
+     },
+     "upigz@base": {
+      "arm": "upigz@base",
+      "parallel": true,
+      "threads_run": 1,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.478,
+      "wall_best": 0.4735,
+      "cpu": 0.4807,
+      "rss_mb": 132.4,
+      "out": 268385295,
+      "mb_s": 561.5,
+      "errors": [],
+      "wall_ratio": [
+       1.0076,
+       0.9997,
+       1.0155
+      ],
+      "cpu_ratio": [
+       1.0081,
+       1.0003,
+       1.016
+      ],
+      "rss_ratio": [
+       0.9998,
+       0.9989,
+       1.0007
+      ]
+     }
+    },
+    "same_bytes": true
+   },
+   "2": {
+    "arms": {
+     "upigz": {
+      "arm": "upigz",
+      "parallel": true,
+      "threads_run": 2,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.2697,
+      "wall_best": 0.2635,
+      "cpu": 0.5077,
+      "rss_mb": 196.2,
+      "out": 268385295,
+      "mb_s": 995.0,
+      "errors": []
+     },
+     "upigz@base": {
+      "arm": "upigz@base",
+      "parallel": true,
+      "threads_run": 2,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.268,
+      "wall_best": 0.2655,
+      "cpu": 0.5051,
+      "rss_mb": 180.0,
+      "out": 268385295,
+      "mb_s": 1001.4,
+      "errors": [],
+      "wall_ratio": [
+       0.9928,
+       0.9785,
+       1.0073
+      ],
+      "cpu_ratio": [
+       0.9972,
+       0.9808,
+       1.0139
+      ],
+      "rss_ratio": [
+       0.9747,
+       0.9399,
+       1.0108
+      ]
+     }
+    },
+    "same_bytes": true
+   },
+   "4": {
+    "arms": {
+     "upigz": {
+      "arm": "upigz",
+      "parallel": true,
+      "threads_run": 4,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.2204,
+      "wall_best": 0.2163,
+      "cpu": 0.7518,
+      "rss_mb": 261.0,
+      "out": 268385295,
+      "mb_s": 1217.7,
+      "errors": []
+     },
+     "upigz@base": {
+      "arm": "upigz@base",
+      "parallel": true,
+      "threads_run": 4,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.2206,
+      "wall_best": 0.2143,
+      "cpu": 0.7531,
+      "rss_mb": 261.4,
+      "out": 268385295,
+      "mb_s": 1216.8,
+      "errors": [],
+      "wall_ratio": [
+       0.9942,
+       0.98,
+       1.0085
+      ],
+      "cpu_ratio": [
+       0.9997,
+       0.9931,
+       1.0064
+      ],
+      "rss_ratio": [
+       0.9939,
+       0.9682,
+       1.0203
+      ]
+     }
+    },
+    "same_bytes": true
+   }
+  }
+ }
+}
