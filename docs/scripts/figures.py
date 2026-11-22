@@ -91,23 +91,19 @@ def parallel_svg(d):
     return "".join(s)
 
 
-def single_svg(ds):
-    corpora = [("Wikidata JSON", "wikidata"), ("source code", "source"), ("binaries", "binary")]
-    arms = [("upigz kernel", "fast", "bf-green"), ("ISA-L 2.31", "isal", "bf-steel"), ("zlib-rs 0.6.8", "zlib-rs", "bf-steel")]
-    W, left, top, rh, gap = 720, 150, 34, 22, 16
-    x0, x1, pw = 0.9, 1.55, 520
+def single_svg(rows_by_corpus, title):
+    """A dot-and-whisker chart, one group per corpus. Each group's label has a line of its own
+    above its rows, so it never collides with the row labels."""
+    W, left, top, rh, gh, gap = 720, 190, 34, 22, 22, 12
+    x0, x1, pw = 0.9, 1.55, 470
     X = lambda v: left + pw * (v - x0) / (x1 - x0)
-    n = len(corpora) * (len(arms) * rh + gap)
-    h = top + n + 30
-    label = []
-    s = []
-    s.append(f'<text x="{left}" y="14" class="bf-tm">time vs libdeflate 1.26.1, one thread, in memory (lower is better; 1.0 = libdeflate)</text>')
+    label, s = [], []
+    s.append(f'<text x="{left}" y="14" class="bf-tm">{esc(title)}</text>')
     y = top
-    for cname, ck in corpora:
-        d = ds[ck]["arms"]
+    for cname, rows in rows_by_corpus:
         s.append(f'<text x="0" y="{y + 14}" class="bf-ts">{esc(cname)}</text>')
-        for an, ak, cls in arms:
-            v = d[ak]
+        y += gh
+        for an, v, cls in rows:
             cy = y + 10
             s.append(f'<text x="{left - 10}" y="{cy + 4}" class="bf-t" text-anchor="end">{esc(an)}</text>')
             s.append(f'<path d="M{X(v["lo"]):.1f} {cy}H{X(v["hi"]):.1f}" class="bf-whisker"/>')
@@ -126,19 +122,35 @@ def single_svg(ds):
     return head + "".join(s) + "</svg>"
 
 
+CORPORA = (("Wikidata JSON", "wikidata", "wikidata.json"), ("source code", "source", "source.tar"),
+           ("binaries", "binary", "binary.tar"))
+
+
 def build():
     par = summarise("runs/race-big4.txt", "rapidgzip-P4")
     safe = summarise("runs/race-safe.txt", "rapidgzip-P4")
-    single = {k: summarise(f"runs/sota-{f}.txt", "libdeflate")
-              for k, f in (("wikidata", "wikidata.json"), ("source", "source.tar"), ("binary", "binary.tar"))}
+    # the first single-thread race (the post of 2026-11-22 shows it as published)
+    single = {k: summarise(f"runs/sota-{f}.txt", "libdeflate") for _, k, f in CORPORA}
+    # the kernel after #16, both builds, against libdeflate in the same binary
+    now = {b: {k: summarise(f"runs/k1-{b}-{f}.txt", "libdeflate") for _, k, f in CORPORA}
+           for b in ("unchecked", "release")}
     data = {
         "host": "research host: shared 4-vCPU cloud VM (Sapphire Rapids-class Xeon, 2.1 GHz, no PMU); indicative only",
-        "parallel": par, "parallel_safe": safe, "single_thread": single,
+        "parallel": par, "parallel_safe": safe, "single_thread": single, "single_thread_now": now,
     }
+    first = [(c, [("upigz kernel", single[k]["arms"]["fast"], "bf-green"),
+                  ("ISA-L 2.31", single[k]["arms"]["isal"], "bf-steel"),
+                  ("zlib-rs 0.6.8", single[k]["arms"]["zlib-rs"], "bf-steel")]) for c, k, _ in CORPORA]
+    current = [(c, [("upigz, unchecked build", now["unchecked"][k]["arms"]["fast"], "bf-green"),
+                    ("upigz, safe build", now["release"][k]["arms"]["fast"], "bf-green"),
+                    ("ISA-L 2.31 (first race)", single[k]["arms"]["isal"], "bf-steel"),
+                    ("zlib-rs 0.6.8 (first race)", single[k]["arms"]["zlib-rs"], "bf-steel")]) for c, k, _ in CORPORA]
+    t = "time vs libdeflate 1.26.1, one thread, in memory (lower is better; 1.0 = libdeflate)"
     return {
         "docs/site/assets/data/results.json": json.dumps(data, indent=2) + "\n",
         "docs/figures/parallel.svg": parallel_svg(par) + "\n",
-        "docs/figures/single-thread.svg": single_svg(single) + "\n",
+        "docs/figures/single-thread.svg": single_svg(current, t) + "\n",
+        "docs/figures/single-thread-2026-11-22-first.svg": single_svg(first, t) + "\n",
     }
 
 

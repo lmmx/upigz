@@ -89,7 +89,7 @@ The decoding itself wasn't what made the difference. Two memory and scheduling f
 ## The one-thread kernel
 
 <figure class="bf-fig">
---8<-- "docs/figures/single-thread.svg"
+--8<-- "docs/figures/single-thread-2026-11-22-first.svg"
 <figcaption>One thread, in memory, decoding 64 MiB inputs at <code>gzip -6</code> into a reused
 buffer, no CRC. Eleven paired rounds per corpus (<code>runs/sota-*.txt</code>). The dashed line
 is libdeflate; whiskers are 95% intervals. libdeflate's own A/A control landed at 0.987–1.006.</figcaption>

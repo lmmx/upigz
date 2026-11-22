@@ -211,5 +211,179 @@
         }
       }
     }
+  },
+  "single_thread_now": {
+    "unchecked": {
+      "wikidata": {
+        "source": "runs/k1-unchecked-wikidata.json.txt",
+        "reference": "libdeflate",
+        "bytes": 67098933,
+        "arms": {
+          "fast": {
+            "gbps": 1.521,
+            "ratio": 1.0,
+            "lo": 0.986,
+            "hi": 1.014,
+            "rounds": 10
+          },
+          "fast-base": {
+            "gbps": 1.39,
+            "ratio": 1.079,
+            "lo": 1.07,
+            "hi": 1.088,
+            "rounds": 10
+          },
+          "libdeflate": {
+            "gbps": 1.503,
+            "ratio": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "rounds": 10
+          }
+        }
+      },
+      "source": {
+        "source": "runs/k1-unchecked-source.tar.txt",
+        "reference": "libdeflate",
+        "bytes": 67108864,
+        "arms": {
+          "fast": {
+            "gbps": 0.853,
+            "ratio": 0.997,
+            "lo": 0.961,
+            "hi": 1.034,
+            "rounds": 10
+          },
+          "fast-base": {
+            "gbps": 0.771,
+            "ratio": 1.098,
+            "lo": 1.056,
+            "hi": 1.141,
+            "rounds": 10
+          },
+          "libdeflate": {
+            "gbps": 0.864,
+            "ratio": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "rounds": 10
+          }
+        }
+      },
+      "binary": {
+        "source": "runs/k1-unchecked-binary.tar.txt",
+        "reference": "libdeflate",
+        "bytes": 67108864,
+        "arms": {
+          "fast": {
+            "gbps": 0.738,
+            "ratio": 1.03,
+            "lo": 0.984,
+            "hi": 1.078,
+            "rounds": 10
+          },
+          "fast-base": {
+            "gbps": 0.686,
+            "ratio": 1.113,
+            "lo": 1.055,
+            "hi": 1.174,
+            "rounds": 10
+          },
+          "libdeflate": {
+            "gbps": 0.753,
+            "ratio": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "rounds": 10
+          }
+        }
+      }
+    },
+    "release": {
+      "wikidata": {
+        "source": "runs/k1-release-wikidata.json.txt",
+        "reference": "libdeflate",
+        "bytes": 67098933,
+        "arms": {
+          "fast": {
+            "gbps": 1.352,
+            "ratio": 1.102,
+            "lo": 1.086,
+            "hi": 1.119,
+            "rounds": 10
+          },
+          "fast-base": {
+            "gbps": 1.311,
+            "ratio": 1.138,
+            "lo": 1.118,
+            "hi": 1.158,
+            "rounds": 10
+          },
+          "libdeflate": {
+            "gbps": 1.496,
+            "ratio": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "rounds": 10
+          }
+        }
+      },
+      "source": {
+        "source": "runs/k1-release-source.tar.txt",
+        "reference": "libdeflate",
+        "bytes": 67108864,
+        "arms": {
+          "fast": {
+            "gbps": 0.764,
+            "ratio": 1.162,
+            "lo": 1.112,
+            "hi": 1.214,
+            "rounds": 10
+          },
+          "fast-base": {
+            "gbps": 0.743,
+            "ratio": 1.18,
+            "lo": 1.142,
+            "hi": 1.218,
+            "rounds": 10
+          },
+          "libdeflate": {
+            "gbps": 0.87,
+            "ratio": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "rounds": 10
+          }
+        }
+      },
+      "binary": {
+        "source": "runs/k1-release-binary.tar.txt",
+        "reference": "libdeflate",
+        "bytes": 67108864,
+        "arms": {
+          "fast": {
+            "gbps": 0.675,
+            "ratio": 1.179,
+            "lo": 1.096,
+            "hi": 1.267,
+            "rounds": 10
+          },
+          "fast-base": {
+            "gbps": 0.654,
+            "ratio": 1.143,
+            "lo": 1.104,
+            "hi": 1.183,
+            "rounds": 10
+          },
+          "libdeflate": {
+            "gbps": 0.752,
+            "ratio": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "rounds": 10
+          }
+        }
+      }
+    }
   }
 }
