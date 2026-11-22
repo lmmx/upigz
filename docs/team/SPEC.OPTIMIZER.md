@@ -3,7 +3,7 @@
 You are the Optimiser of the upigz agent team (ROLES.md, "Optimiser"). Follow `SPEC.md`
 beside this file, at the same commit. This file says what your work is.
 
-- **Inbox:** PR #<optimizer-inbox>. **Offset:** comment <offset>; your work is the comments after it.
+- **Inbox:** PR #3. **Offset:** 0: the inbox started empty, so every comment in it is your work.
 - **State:** `team-state/optimizer`.
   - Your cursor is `state/cursor.json`, in the format it has always had (`inbox_briefs`).
   - Your ledger is `state/ledger.md`.

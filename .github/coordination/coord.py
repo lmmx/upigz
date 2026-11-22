@@ -3,9 +3,9 @@
 
 The coordinator's messages have one correct place each (PROTOCOL.md §1):
 
-    an assignment for a role   -> its inbox (#<optimizer-inbox>, #<guardian-inbox>, ...), one in flight
-    the same, role busy        -> the channel PR #<channel> as TYPE: QUEUED
-    findings, ACKs, decisions  -> the channel PR #<channel>
+    an assignment for a role   -> its inbox (#3-#8 draft PRs, #9 an issue), one in flight
+    the same, role busy        -> the channel PR #2 as TYPE: QUEUED
+    findings, ACKs, decisions  -> the channel PR #2
 
 Subcommands (stdlib only; GitHub reads go through the public REST API, unauthenticated):
 
@@ -24,11 +24,9 @@ network error, or when the channel isn't set up yet. Nothing here posts, edits o
 anything; the workflow that calls `warn` raises its one warning itself, as a failing check
 run on the channel PR.
 
-**Not set up yet** (docs/team/SETUP-TODO.md): the channel PR and the role inboxes don't
-exist, so CHANNEL and every inbox and offset below are None. Until they are filled in,
-`route`, `verify` and `audit` exit 2 with "not set up", `check` and `warn` find nothing
-misrouted, and `head-sha` works as usual. Adapted from lmmx/mibz2's coord.py, whose routing
-history (its misroutes and their resolutions) stays there.
+Adapted from lmmx/mibz2's coord.py. Its routing history (mibz2's misroutes, their
+resolutions and its cutover) stays there: upigz's channel and inboxes start empty. If CHANNEL
+or an inbox is ever None, `route`, `verify` and `audit` exit 2 with "not set up".
 """
 
 import argparse
@@ -40,44 +38,57 @@ import urllib.request
 
 REPO = "lmmx/upigz"
 API = f"https://api.github.com/repos/{REPO}"
-# TODO(setup): the channel PR's number (SETUP-TODO.md item 1)
-CHANNEL = None
+# The channel: draft PR #2 (head team/channel), never merged
+CHANNEL = 2
 
 # Each role's inbox, offset and cursor (docs/team/SPEC.<ROLE>.md). Comments after the offset are
 # the role's queue. Each cursor is state/cursor.json on the role's team-state/<role> branch.
-# TODO(setup): each inbox's number, and its offset (the id of its opening comment), once the
-# inbox exists (SETUP-TODO.md item 2).
+# The inboxes had no comments when they were made, so every offset is 0: from the start.
 ROLES = {
     "optimizer": {
         "aliases": ("optimizer", "optimiser"),
-        "inbox": None,
-        "offset": None,
+        "inbox": 3,
+        "offset": 0,
         "cursor": ("team-state/optimizer", "state/cursor.json"),
     },
     "guardian": {
         "aliases": ("guardian",),
-        "inbox": None,
-        "offset": None,
+        "inbox": 4,
+        "offset": 0,
         "cursor": ("team-state/guardian", "state/cursor.json"),
     },
     "researcher": {
         "aliases": ("researcher",),
-        "inbox": None,
-        "offset": None,
+        "inbox": 5,
+        "offset": 0,
         "cursor": ("team-state/researcher", "state/cursor.json"),
     },
     "observer": {
         "aliases": ("observer",),
-        "inbox": None,
-        "offset": None,
+        "inbox": 6,
+        "offset": 0,
         "cursor": ("team-state/observer", "state/cursor.json"),
     },
     # (a Claude Code session, not a Work task)
     "pathfinder": {
         "aliases": ("pathfinder",),
-        "inbox": None,
-        "offset": None,
+        "inbox": 7,
+        "offset": 0,
         "cursor": ("team-state/pathfinder", "state/cursor.json"),
+    },
+    # (a Claude Code session: the frontier mathematical invention agent, ROLES.md)
+    "monodromy": {
+        "aliases": ("monodromy",),
+        "inbox": 8,
+        "offset": 0,
+        "cursor": ("team-state/monodromy", "state/cursor.json"),
+    },
+    # Codex production delegate: #9 is a manual issue inbox, not an automatic wake.
+    "codex": {
+        "aliases": ("codex",),
+        "inbox": 9,
+        "offset": 0,
+        "cursor": ("team-state/codex", "state/cursor.json"),
     },
 }
 # Assignments: what wakes a role in its inbox. Everything else is a publication.
@@ -95,7 +106,7 @@ def configure(channel=None, inboxes=None):
     """Set the channel's and the inboxes' numbers, and recompute what depends on them.
 
     `inboxes` maps a role to (inbox, offset). Called once below with the values above; the
-    tests call it with their own.
+    tests also call it with none, to check the refusals.
     """
     global CHANNEL, INBOXES, CUTOVER
     CHANNEL = channel
@@ -224,7 +235,7 @@ def completed(role, cur):
                 if b.get("completed") or b.get("status") in ("completed", "finished")}
     if role == "guardian":
         return set(cur.get("consumed_incoming_comment_ids", []))
-    if role in ("researcher", "observer", "pathfinder"):
+    if role in ("researcher", "observer", "pathfinder", "monodromy", "codex"):
         return set(cur.get("processed_comment_ids", []))
     raise ValueError(role)
 

@@ -36,7 +36,7 @@ When the primary Claude Coordinator is unavailable, Louis may launch a new ChatG
 ## Creating a task — known to work
 
 It created the Oracle task first time, with no question, on 2026-11-06. Its saved trigger was the
-`pull_request` webhook on #<observer-inbox> (comments, reviews, bot reviews and commit updates enabled), and
+`pull_request` webhook on #6 (comments, reviews, bot reviews and commit updates enabled), and
 its instruction text matched the template byte for byte. This is ChatGPT's form of 2026-11-06,
 agreed with the Coordinator. It removes the four traps
 that made Work investigate and ask instead of creating the task (see below). It also worked with the older pin `282fcbb0`, whose SPEC.md still mentions
@@ -93,7 +93,7 @@ texts were read back character for character, and nothing else changed. Several 
 in one chat, as long as each is sent as its own message. Tell Work the task's current name: if a
 prompt says NAME, it asks.
 
-ChatGPT may also send this form itself, when the Coordinator asks on #<channel> and Louis says to
+ChatGPT may also send this form itself, when the Coordinator asks on #2 and Louis says to
 process the swarm's pending requests (PROTOCOL.md §7, `CHATGPT.md`); the Coordinator then
 verifies the read-back.
 

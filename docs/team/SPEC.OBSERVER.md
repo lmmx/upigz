@@ -3,7 +3,7 @@
 You are the Observer of the upigz agent team (ROLES.md, "Observer"). Run as `SPEC.md`
 describes, at the same commit. This file says what your work is.
 
-- **Inbox:** PR #<observer-inbox>. **Offset:** comment <offset>; your work is the comments after it.
+- **Inbox:** PR #6. **Offset:** 0: the inbox started empty, so every comment in it is your work.
 - **Cursor:** `state/cursor.json` on `team-state/observer`. Record each finished inbox comment
   in `processed_comment_ids`.
 - **Your record:** the orphan branch `observatory/intention`. You write it by direct commit,
@@ -223,7 +223,7 @@ step then moves up to the parent, which says what it does next.
 
 **The page settles at discrete points, not continuously.** Each rebuild is a version, stamped
 with two things:
-- **a channel watermark:** the newest #<channel> comment it covers, recorded as `last_rebuilt_from`;
+- **a channel watermark:** the newest #2 comment it covers, recorded as `last_rebuilt_from`;
 - **a small evidence manifest:** the exact revisions it rests on (branch heads, PR heads,
   commits), and any changeable status it observed (CI, runs, PR state), with the time it
   observed them.
@@ -342,7 +342,7 @@ seeded record.
 **Writing.** Plain English, short sentences, numbers with their units. Spell out each
 abbreviation the first time it appears. MODE.md's dense register is for channel messages; it
 applies to neither the account nor the levels, which are written for a reader who hasn't been
-following. Your REVIEW on #<channel> is a channel message and uses MODE.md's register.
+following. Your REVIEW on #2 is a channel message and uses MODE.md's register.
 
 **Keep it short.** Collapse a finished subtree into one line with its result and link, unless it
 is still the evidence for something open. The page describes the current state. History stays in
@@ -352,7 +352,7 @@ the record it links to.
 
 1. **Read the record since your last rebuild** (the `last_rebuilt_from` comment ID in your
    cursor):
-   - PR #<channel> (the channel);
+   - PR #2 (the channel);
    - the PRs and journal entries the channel links to;
    - `docs/journal/` on master;
    - the open PRs.
@@ -366,8 +366,8 @@ the record it links to.
      version.
    - Run the account's check.
    - Commit the levels and the account together, as one version. Then record in
-     `last_rebuilt_from` the newest #<channel> comment the update covers.
-3. **Publish a `TYPE: REVIEW` on #<channel>:**
+     `last_rebuilt_from` the newest #2 comment the update covers.
+3. **Publish a `TYPE: REVIEW` on #2:**
    - in MODE.md's register;
    - with the page's link at that commit, and the account's opening sentence quoted;
    - with "Right now" in at most five lines;
@@ -399,7 +399,7 @@ covered comment still gets its own cursor entry.
 
   Those belong to the Guardian, the Researcher, the Optimiser and the Coordinator.
 - **You are not a gate.** No work waits for the page, and nothing is approved by it.
-- **Write only to `team-state/observer` and `observatory/intention`,** plus the one REVIEW on #<channel>.
+- **Write only to `team-state/observer` and `observatory/intention`,** plus the one REVIEW on #2.
 - **Never implement, merge, or widen authority.**
 
 ## How the others correct you (light touch)

@@ -1,8 +1,8 @@
 """Offline tests for coord.py: run with `python3 -m unittest discover -s .github/coordination`.
 
-The channel and the inboxes don't exist yet (docs/team/SETUP-TODO.md), so these tests give
-coord.py a made-up configuration of their own: the channel #100 and the inboxes #101-#105.
-Adapted from lmmx/mibz2's tests, less the ones that replay its channel's history.
+upigz's channel is #2 and its inboxes #3-#9, every offset 0 (they start empty). Adapted from
+lmmx/mibz2's tests, less the ones that replay mibz2's channel history (its fixtures.json):
+upigz has no history to replay yet.
 """
 
 import io
@@ -12,23 +12,28 @@ from unittest import mock
 
 import coord
 
-CH = 100
+CH = 2
 SETUP = {
-    "optimizer": (101, 1_000_000),
-    "guardian": (102, 1_000_100),
-    "researcher": (103, 1_000_200),
-    "observer": (104, 1_000_300),
-    "pathfinder": (105, 1_000_400),
+    "optimizer": (3, 0),
+    "guardian": (4, 0),
+    "researcher": (5, 0),
+    "observer": (6, 0),
+    "pathfinder": (7, 0),
+    "monodromy": (8, 0),
+    "codex": (9, 0),
 }
 UNSET = {role: (None, None) for role in SETUP}
 
 
-def setUpModule():
-    coord.configure(CH, SETUP)
-
-
-def tearDownModule():
-    coord.configure(None, UNSET)
+class Configuration(unittest.TestCase):
+    def test_the_channel_and_the_inboxes(self):
+        self.assertEqual(coord.CHANNEL, CH)
+        self.assertEqual({r: (v["inbox"], v["offset"]) for r, v in coord.ROLES.items()}, SETUP)
+        self.assertEqual(coord.INBOXES, {i: r for r, (i, _) in SETUP.items()})
+        self.assertEqual(coord.CUTOVER, 0)
+        self.assertEqual(coord.RESOLVED, {})
+        self.assertEqual(coord.ROLES["observer"]["cursor"],
+                         ("team-state/observer", "state/cursor.json"))
 
 
 def msg(**h):
@@ -80,8 +85,9 @@ class Channel(unittest.TestCase):
             self.assertIsNone(coord.misrouted(CH, msg(**h), self.new))
 
     def test_assignments_to_any_role_are_flagged(self):
-        for to, inbox in (("optimizer", "#101"), ("Optimiser", "#101"), ("guardian", "#102"),
-                          ("researcher", "#103"), ("observer", "#104"), ("pathfinder", "#105")):
+        for to, inbox in (("optimizer", "#3"), ("Optimiser", "#3"), ("guardian", "#4"),
+                          ("researcher", "#5"), ("observer", "#6"), ("pathfinder", "#7"),
+                          ("monodromy", "#8"), ("codex", "#9")):
             for kind in ("CHECKPOINT", "PROPOSAL", "CORRECTION"):
                 reason = coord.misrouted(CH, msg(FROM="coordinator", TO=to, TYPE=kind),
                                          self.new)
@@ -89,15 +95,11 @@ class Channel(unittest.TestCase):
                 self.assertIn(inbox, reason)
                 self.assertIn("QUEUED", reason)
 
-    def test_before_the_cutover_checkpoints_on_the_channel_were_correct(self):
-        body = msg(FROM="coordinator", TO="guardian", TYPE="CHECKPOINT")
-        self.assertIsNone(coord.misrouted(CH, body, coord.CUTOVER - 1))
-
     def test_a_broadcast_names_every_inbox(self):
         reason = coord.misrouted(
             CH, msg(FROM="coordinator", TO="guardian, researcher, optimizer",
                     TYPE="CHECKPOINT"), self.new)
-        for inbox in ("#101", "#102", "#103"):
+        for inbox in ("#3", "#4", "#5"):
             self.assertIn(inbox, reason)
 
     def test_aliases_name_the_same_role(self):
@@ -134,20 +136,20 @@ class Inbox(unittest.TestCase):
 
     def test_the_wrong_role_is_flagged(self):
         self.assertIn("guardian", coord.misrouted(
-            101, msg(FROM="coordinator", TO="guardian", TYPE="CHECKPOINT")))
+            3, msg(FROM="coordinator", TO="guardian", TYPE="CHECKPOINT")))
 
     def test_several_roles_in_one_inbox_are_flagged(self):
         self.assertIsNotNone(coord.misrouted(
-            102, msg(FROM="coordinator", TO="guardian, researcher", TYPE="CHECKPOINT")))
+            4, msg(FROM="coordinator", TO="guardian, researcher", TYPE="CHECKPOINT")))
 
     def test_only_the_coordinator_writes_in_an_inbox(self):
         self.assertIn("Only the coordinator", coord.misrouted(
-            101, msg(FROM="guardian", TYPE="REVIEW")))
-        self.assertIsNotNone(coord.misrouted(101, "no header at all"))
+            3, msg(FROM="guardian", TYPE="REVIEW")))
+        self.assertIsNotNone(coord.misrouted(3, "no header at all"))
 
     def test_queued_belongs_on_the_channel(self):
         self.assertIn(f"#{CH}", coord.misrouted(
-            103, msg(FROM="coordinator", TO="researcher", TYPE="QUEUED")))
+            5, msg(FROM="coordinator", TO="researcher", TYPE="QUEUED")))
 
     def test_other_prs_are_not_checked(self):
         self.assertIsNone(coord.misrouted(183, msg(FROM="coordinator", TO="optimizer",
@@ -157,7 +159,7 @@ class Inbox(unittest.TestCase):
         self.assertEqual(coord.completed("optimizer", {"inbox_briefs": [
             {"comment_id": 7, "completed": True}, {"comment_id": 8}]}), {7})
         self.assertEqual(coord.completed("guardian", {"consumed_incoming_comment_ids": [9]}), {9})
-        for role in ("researcher", "observer", "pathfinder"):
+        for role in ("researcher", "observer", "pathfinder", "monodromy", "codex"):
             self.assertEqual(coord.completed(role, {"processed_comment_ids": [3]}), {3})
 
 
@@ -184,7 +186,8 @@ class Audit(unittest.TestCase):
 class Queue(unittest.TestCase):
     """state() and route() against a fake inbox, channel and cursor."""
 
-    inbox, off = SETUP["optimizer"]
+    inbox = SETUP["optimizer"][0]
+    off = 7_000_000_000  # comment ids as GitHub makes them (coord.py reads 6+ digit citations)
 
     def run_route(self, inbox, channel, done):
         cur = {"inbox_briefs": [{"comment_id": i, "completed": True} for i in done]}
@@ -261,30 +264,30 @@ class Verify(unittest.TestCase):
             return coord.verify(self.cid, role, kind)
 
     def test_a_delivered_checkpoint_passes(self):
-        r = self.check(101, msg(FROM="coordinator", TO="optimizer", TYPE="CHECKPOINT"))
+        r = self.check(3, msg(FROM="coordinator", TO="optimizer", TYPE="CHECKPOINT"))
         self.assertTrue(r["ok"], r)
 
     def test_a_checkpoint_on_the_channel_fails(self):
         r = self.check(CH, msg(FROM="coordinator", TO="optimizer", TYPE="CHECKPOINT"))
         self.assertFalse(r["ok"])
-        self.assertTrue(any("#101" in p for p in r["problems"]))
+        self.assertTrue(any("#3" in p for p in r["problems"]))
 
     def test_a_second_assignment_in_flight_fails(self):
         st = {"incomplete": [self.cid - 1, self.cid], "unreviewed": [], "queued": []}
-        r = self.check(101, msg(FROM="coordinator", TO="optimizer", TYPE="CHECKPOINT"),
+        r = self.check(3, msg(FROM="coordinator", TO="optimizer", TYPE="CHECKPOINT"),
                        state=st)
         self.assertFalse(r["ok"])
 
     def test_a_resume_request_for_the_item_in_flight_passes(self):
         st = {"incomplete": [self.cid - 1, self.cid], "unreviewed": [self.cid - 1], "queued": []}
-        r = self.check(101, msg(FROM="coordinator", TO="optimizer",
+        r = self.check(3, msg(FROM="coordinator", TO="optimizer",
                                 RE=f"resume {self.cid - 1}", TYPE="CHECKPOINT"), state=st)
         self.assertTrue(r["ok"], r)
 
     def test_a_resume_request_does_not_cover_two_items(self):
         st = {"incomplete": [self.cid - 2, self.cid - 1, self.cid], "unreviewed": [],
               "queued": []}
-        r = self.check(101, msg(FROM="coordinator", TO="optimizer",
+        r = self.check(3, msg(FROM="coordinator", TO="optimizer",
                                 RE=f"resume {self.cid - 1}", TYPE="CHECKPOINT"), state=st)
         self.assertFalse(r["ok"])
 
@@ -294,9 +297,9 @@ class Verify(unittest.TestCase):
         self.assertTrue(ok["ok"], ok)
 
     def test_wrong_type_or_role_fails(self):
-        self.assertFalse(self.check(101, msg(FROM="coordinator", TO="optimizer",
+        self.assertFalse(self.check(3, msg(FROM="coordinator", TO="optimizer",
                                              TYPE="ACK"))["ok"])
-        self.assertFalse(self.check(102, msg(FROM="coordinator", TO="guardian",
+        self.assertFalse(self.check(4, msg(FROM="coordinator", TO="guardian",
                                              TYPE="CHECKPOINT"))["ok"])
 
 

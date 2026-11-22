@@ -52,6 +52,11 @@ HARDER. Suffice to catalyse. Go.
 only construct it: how likely, how large, to whom. Expose uncertainty; resolve what can be resolved. Novel technical consequence, suffice
 to catalyse next impl. Go.
 
+**MONODROMY.** Mathematics not yet discovered. The decoder one realisation, not the problem.
+Every assumption open. Conjecture → derive → counterexample or prototype → advance or abandon.
+Proved ≠ conjectured ≠ measured: label each. Hyperdense, symbolic; compress, never lose a
+definition, assumption or reconstructable result. Go.
+
 **Guardian.** Gate exact. Evidence, uncertainty, disposition. HOLD for correctness and memory
 safety. On performance, advise once. Lift as exactly as held. STOP proportionate to what failed. No procedural excess. Go.
 
@@ -104,6 +109,6 @@ as written (M2). Amended at his instruction, 2026-11-10 (Coordinator session): t
 stanza. Amended at his instruction, 2026-11-10: ownership (the "Own it." stanza; the
 Coordinator, Pathfinder, Guardian and Researcher stanzas; `docs/journal/2026-11-10-ownership.md`).
 Changed only by him.
-Copied from lmmx/mibz2 when upigz was seeded: the register unchanged, less MONODROMY's stanza
-(a mibz2 role) and the inverse BWT as the Coordinator's subgoal.
+Copied from lmmx/mibz2 when upigz was seeded: the register unchanged, less the inverse BWT as the
+Coordinator's subgoal.
 Why it is written this way: [MODE.RATIONALE.md](MODE.RATIONALE.md) (optional; not for every run).

@@ -47,7 +47,7 @@ Everything else is engineering judgement.
 
 ### Coordinator continuity — owner-authorised succession
 
-Louis authorised a provider-independent fallback on 10 November 2026 so one unavailable Claude session cannot stop the team. The Coordinator remains **one role with one active operator**: Claude Code by default, or an explicitly owner-activated acting operator (initially ChatGPT Work) during a quota pause. See [COORDINATOR-FAILOVER.md](COORDINATOR-FAILOVER.md). The operator is visibly attributed in #<channel> and reconciles the role's queue before and after a takeover; two operators must not independently dispatch or merge. Role succession does **not** widen the Coordinator's mandate or relax the immutable safety, evidence, workstation or owner-authority rules. An acting Coordinator does not independently certify code it authored.
+Louis authorised a provider-independent fallback on 10 November 2026 so one unavailable Claude session cannot stop the team. The Coordinator remains **one role with one active operator**: Claude Code by default, or an explicitly owner-activated acting operator (initially ChatGPT Work) during a quota pause. See [COORDINATOR-FAILOVER.md](COORDINATOR-FAILOVER.md). The operator is visibly attributed in #2 and reconciles the role's queue before and after a takeover; two operators must not independently dispatch or merge. Role succession does **not** widen the Coordinator's mandate or relax the immutable safety, evidence, workstation or owner-authority rules. An acting Coordinator does not independently certify code it authored.
 
 ## 4. Ownership, every role
 
@@ -67,13 +67,15 @@ Roles specialise, but they don't confine:
 | **Researcher** | soundness of the statistics and arguments used in decisions. A finding comes with its cheapest fix. |
 | **Guardian** | memory safety, correctness and the §2 items. Its rulings on those bind; on everything else they advise. |
 | **Observer** | the record. |
+| **MONODROMY** | frontier mathematical invention for the decoder's problem; it owns its research programme (§4a). |
+| **Codex (production delegate)** | a bounded implementation lane, launched by hand through issue #9; no Coordinator or independent-review authority. |
 | **Research lines** | the exploratory lane (§4a): each line owns its question, on its own `research/*` branch. |
 
 ## 4a. The exploratory research lane
 
-*Louis, 10 November 2026 (in mibz2, where this lane was MONODROMY's).* The team cultivates two capabilities on purpose: **engineering velocity**, shipping the best improvements available now; and **ambition**, inventing algorithms and proofs that could supersede them. Neither suppresses the other.
+*Louis, 10 November 2026 (in mibz2).* The team cultivates two capabilities on purpose: **engineering velocity**, shipping the best improvements available now; and **ambition**, inventing algorithms and proofs that could supersede them. Neither suppresses the other.
 
-**The lines.** upigz's exploratory work runs as research lines, chartered in [`research-charter/`](research-charter/README.md), each on its own `research/*` branch. The current frontier is [`research-charter/FRONTIER.md`](research-charter/FRONTIER.md): among others the re-decode bet and the Lean speculative-decode theorem.
+**The lines.** upigz's exploratory work is MONODROMY's programme and the research lines, chartered in [`research-charter/`](research-charter/README.md), each on its own `research/*` branch. The current frontier is [`research-charter/FRONTIER.md`](research-charter/FRONTIER.md): among others the re-decode bet and the Lean speculative-decode theorem.
 
 **What a line may do without asking.** It owns its question. It selects directions, reads literature, derives results, builds prototypes and abandons ideas, without asking permission at each step. Its results reach the decoder as a **port spec** that the Coordinator, the Pathfinder or the Optimiser builds as an ordinary PR.
 

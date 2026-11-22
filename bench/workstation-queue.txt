@@ -1,11 +1,9 @@
 # repo: lmmx/upigz
-# channel: TODO
+# channel: 2
 #
 # The two lines above say where this repository's runs report. bench/submit.sh and
 # bench/await-submit.sh read them, so that those scripts name no repository: keep them. The
-# channel PR doesn't exist yet (docs/team/SETUP-TODO.md item 1): until `TODO` is replaced by its
-# number, bench/submit.sh refuses to submit (it keeps the bundle) and the waiter's notices go
-# nowhere.
+# channel is the team's channel PR, #2.
 #
 # The workstation queue: frozen recipes ready to run on the workstation, in run order.
 # `just workstation-queue` runs every entry whose ready/<recipe> tag is set, once each,

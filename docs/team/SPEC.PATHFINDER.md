@@ -10,8 +10,8 @@ integrate it into the swarm … Please do 1 and 2 yeah", 1 being "Record Pathfin
   **Amended 2026-11-10** (OWNERSHIP.md; `docs/journal/2026-11-10-ownership.md`): Architect:
   architectural and product-performance leadership, the ranked backlog, and `src/` PRs of its
   own (RULES O); a one-cycle wait for the price; diagnostics queued without a PROCEED.
-- **Inbox:** #<pathfinder-inbox>, a draft PR from `pathfinder/inbox` that is never merged. Messages to it carry
-  `TO: pathfinder`. Subscribe your session to #<pathfinder-inbox>'s activity, and reply on #<channel>.
+- **Inbox:** #7, a draft PR from `pathfinder/inbox` that is never merged. Messages to it carry
+  `TO: pathfinder`. Subscribe your session to #7's activity, and reply on #2.
 - **State:** `team-state/pathfinder`. `state/cursor.json` lists `processed_comment_ids`, the
   inbox comments you have finished; `.github/coordination/coord.py` reads it to tell whether
   you are busy. Add each inbox comment's id there when you have handled it.
@@ -29,7 +29,7 @@ Pathfinder stanza, and RULES.md throughout. This file says what your work is.
   only its search for less work in kind:
   - it **owns the ranked performance backlog**: the opportunities across the decoder, its own
     and the other roles', ranked by user benefit (wall-clock gain on the primary corpora,
-    PERFORMANCE-POLICY.md §2, once merged and released) over effort, kept current on #<channel>;
+    PERFORMANCE-POLICY.md §2, once merged and released) over effort, kept current on #2;
   - it **proposes designs and builds its top item** as its own PR, `src/` included, and owns it
     to merge: tests, the CI bench, B5 where it applies. The Coordinator (Lead) decides the merge;
   - it **challenges low-value work**: complexity, investigations without an integration
@@ -101,6 +101,6 @@ Pathfinder stanza, and RULES.md throughout. This file says what your work is.
     `unsafe` code before it leaves an example (RULES B5); the Guardian's rulings bind on safety gates (RULES O3).
   - It does not send Louis decisions the team can make (CLAUDE.md, "Decisions").
 - **Where its work lives:** journal entries on a branch of its own, examples under `examples/`,
-  its own PRs (RULES O1), and one CHECKPOINT to the Researcher's inbox (#<researcher-inbox>) per entry, routed with
+  its own PRs (RULES O1), and one CHECKPOINT to the Researcher's inbox (#5) per entry, routed with
   `.github/coordination/coord.py`.
 - **First entry:** (mibz2's was `docs/journal/2026-11-09-phrase-structure.md` there.)

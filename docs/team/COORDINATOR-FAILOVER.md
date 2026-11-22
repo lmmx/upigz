@@ -10,9 +10,9 @@ The acting operator inherits only the Coordinator's existing delegated authority
 
 ## Activation / collision avoidance
 
-Louis activates a named operator explicitly. Before dispatching, the acting operator reads master policies, all #<channel> updates since the last handoff, and the most recent active-operator LOG. It must post one #<channel> activation LOG identifying **ACTOR: ChatGPT Work (acting)**, the owner's authorization, time, scope and current master SHA. The existing routing tool recognises the *role* `FROM: coordinator`; include `ACTOR:` in the body of every acting LOG and assignment to distinguish which session operated.
+Louis activates a named operator explicitly. Before dispatching, the acting operator reads master policies, all #2 updates since the last handoff, and the most recent active-operator LOG. It must post one #2 activation LOG identifying **ACTOR: ChatGPT Work (acting)**, the owner's authorization, time, scope and current master SHA. The existing routing tool recognises the *role* `FROM: coordinator`; include `ACTOR:` in the body of every acting LOG and assignment to distinguish which session operated.
 
-Only **one operator** may dispatch or merge at a time. A recovered Claude Coordinator must read the acting handoff and explicitly take control back on #<channel> before doing work. On uncertainty or simultaneous operators: stop writes and reconcile with Louis. All prior assignments, cursor IDs, PRs and run digests survive that handoff unchanged. GitHub account names and message headers are **not** authentication.
+Only **one operator** may dispatch or merge at a time. A recovered Claude Coordinator must read the acting handoff and explicitly take control back on #2 before doing work. On uncertainty or simultaneous operators: stop writes and reconcile with Louis. All prior assignments, cursor IDs, PRs and run digests survive that handoff unchanged. GitHub account names and message headers are **not** authentication.
 
 ## Event-triggered monitor (not carried over)
 
@@ -23,7 +23,7 @@ if upigz needs one.
 ## First session checklist
 
 1. Read current `OWNERSHIP.md`, `RULES.md`, `PROTOCOL.md`, `ROLES.md`, `MODE.md`, `PERFORMANCE-POLICY.md`, `CLAUDE.md`, `and `docs/RELEASING.md`; compare with later master commits.
-2. Read #<channel> from the last Coordinator LOG forward; inspect the open PRs, the workstation queue and the `evidence` branch. Mark **done / pending / blocked / needs Louis** separately.
+2. Read #2 from the last Coordinator LOG forward; inspect the open PRs, the workstation queue and the `evidence` branch. Mark **done / pending / blocked / needs Louis** separately.
 3. Run `python3 .github/coordination/coord.py audit`; use `route --to <role> --type CHECKPOINT` and `verify` when delegating, observing one item in flight.
 4. Record an activation LOG, then decide/dispatch only within the delegated existing policy. Do not conflate a stage's gain with a whole-decoder gain.
 
@@ -37,6 +37,6 @@ if upigz needs one.
 
 ## Leaving the chair
 
-Before stopping, post a `FROM: coordinator`, `TYPE: LOG` with `ACTOR:`, exact SHAs, evidence links/digests, decisions, unprocessed queue IDs and next actor. Hand back explicitly on #<channel>. An agent returning after a quota pause **must reconcile**, not resume from its own old chat.
+Before stopping, post a `FROM: coordinator`, `TYPE: LOG` with `ACTOR:`, exact SHAs, evidence links/digests, decisions, unprocessed queue IDs and next actor. Hand back explicitly on #2. An agent returning after a quota pause **must reconcile**, not resume from its own old chat.
 
 **Fallback of the fallback:** Louis can start a fresh operator with [WORK-ACTING-COORDINATOR.md](WORK-ACTING-COORDINATOR.md) and the latest GitHub evidence. No model-specific memory or provider subscription is indispensable.
