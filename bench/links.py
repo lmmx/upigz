@@ -53,11 +53,12 @@ PATHS = [
     "src",
     "Cargo.toml",
     "Cargo.lock",
-    "examples/ab.rs",
-    "examples/windows.rs",
-    "examples/phases.rs",
-    "tests/common",
-    "bench",
+    "build.rs",
+    "csrc",
+    "rust-toolchain.toml",
+    "bench/ci_bench.py",
+    "bench/ci_corpus.py",
+    "bench/report.py",
     ".github/workflows/bench.yml",
 ]
 HEAD, BASE = "upigz", "upigz@base"
@@ -134,8 +135,9 @@ def line(commit: str, pr: int, res: dict, runs: list[dict], source: str) -> dict
         "run": res["run"],
         "bench": res["bench"],
         "meaning": report.meaning_major("decoder", res["bench"]),
-        # (before 3.0.0 the head ran first in every round: bench/CHANGELOG.md)
-        "balanced": int(res["bench"].split(".")[0]) >= 3,
+        # (mibz2's head ran first in every round before its bench 3.0.0; upigz's arms run in
+        # an order shuffled each round from bench 1.0.0 on: bench/CHANGELOG.md)
+        "balanced": True,
         "cpu": machine["cpu"],
         "cores": machine.get("cores"),
         "rounds": res["rounds"],

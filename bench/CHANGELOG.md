@@ -15,3 +15,5 @@ one.
 - 10 timed rounds after one untimed warm-up round, every cell once a round, in an order
   shuffled from a fixed seed. Wall and CPU time and peak RSS from `wait4`. Ratios are paired
   by round, against upigz at the same thread count.
+- Pull requests: head against base (`upigz` and `upigz@base`) at 1, 2 and 4 threads, the same
+  rounds; kept as links of the history's chain once merged (`bench/links.py`).

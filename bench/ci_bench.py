@@ -5,11 +5,15 @@ so docs/scripts/bench_history.py and the site's charts read it unchanged.
 
     python3 bench/ci_bench.py run OUT_DIR --corpus GZ --raw RAW --upigz BIN --rapidgzip BIN
         [--rounds 10] [--threads 1,2,4] [--head SHA] [--run URL]
+    python3 bench/ci_bench.py run OUT_DIR --corpus GZ --raw RAW --upigz BIN
+        --base-upigz BIN --base SHA [--head SHA] ...     (a pull request: head against base)
 
 Every arm first decodes the corpus once, untimed, and its output's sha256 must equal the raw
 file's (`same_bytes`). Then each round runs every (arm, threads) cell once, in an order shuffled
 from a fixed seed, output to /dev/null, recording wall and CPU time and peak RSS (wait4).
-Round 0 is a warm-up, dropped. Writes OUT_DIR/result.json (the summary), OUT_DIR/raw.jsonl
+Round 0 is a warm-up, dropped. With --base-upigz, the arms are upigz (the head) and upigz@base only, at every thread count:
+a paired comparison on one runner (mode "pr"), which bench/links.py keeps as a link of the
+history's chain. Writes OUT_DIR/result.json (the summary), OUT_DIR/runs.jsonl
 (one line a timed run) and OUT_DIR/summary.md (its tables); `bench/report.py record` files them
 on the bench-results branch.
 
@@ -37,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import report  # noqa: E402
 
 SEED = 20261122
+PARALLEL = ("upigz", "upigz@base", "rapidgzip")
 
 
 def cmds(a, gz):
@@ -49,9 +54,13 @@ def cmds(a, gz):
     cells = {}
     for t in a.threads:
         cells[("upigz", t)] = [a.upigz, "zcat", gz, str(t), "1024"]
-        cells[("rapidgzip", t)] = [a.rapidgzip, "-P", str(t), "--verify", "-dc", gz]
-    for name, argv in single.items():
-        cells[(name, 1)] = argv
+        if a.base_upigz:
+            cells[("upigz@base", t)] = [a.base_upigz, "zcat", gz, str(t), "1024"]
+        else:
+            cells[("rapidgzip", t)] = [a.rapidgzip, "-P", str(t), "--verify", "-dc", gz]
+    if not a.base_upigz:
+        for name, argv in single.items():
+            cells[(name, 1)] = argv
     return cells
 
 
@@ -163,7 +172,7 @@ def run(a):
             med = lambda v: sorted(v)[len(v) // 2]
             f = {
                 "arm": arm,
-                "parallel": arm in ("upigz", "rapidgzip"),
+                "parallel": arm in PARALLEL,
                 "threads_run": t,
                 "same_bytes": same[(arm, t)],
                 "n": len(rs),
@@ -186,15 +195,17 @@ def run(a):
         }
     res = {
         "bench": report.BENCH,
-        "mode": "master",
+        "mode": "pr" if a.base_upigz else "master",
         "head": a.head,
-        "base": None,
+        "base": a.base,
         "date": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "run": a.run,
         "rounds": a.rounds,
         "threads": a.threads,
         "machine": machine(),
-        "toolchain": {
+        "toolchain": {"rustc": version(["rustc", "-V"])}
+        if a.base_upigz
+        else {
             "rustc": version(["rustc", "-V"]),
             "rapidgzip": version([a.rapidgzip, "--version"]),
             "igzip": version(["igzip", "--version"]),
@@ -204,7 +215,7 @@ def run(a):
         },
         "arms": sorted({arm for arm, _ in cells} - {"upigz"}),
         "parallel": {
-            arm: arm in ("upigz", "rapidgzip")
+            arm: arm in PARALLEL
             for arm in ["upigz"] + sorted({arm for arm, _ in cells} - {"upigz"})
         },
         "reference": "upigz",
@@ -222,7 +233,7 @@ def run(a):
         "figures": figures,
     }
     (out / "result.json").write_text(json.dumps(res, indent=1) + "\n")
-    (out / "raw.jsonl").write_text("".join(json.dumps(x) + "\n" for x in runs))
+    (out / "runs.jsonl").write_text("".join(json.dumps(x) + "\n" for x in runs))
     (out / "summary.md").write_text(report.markdown(res))
     print(report.markdown(res))
     return 0 if res["parity"] else 1
@@ -236,12 +247,16 @@ def main():
     r.add_argument("--corpus", required=True)
     r.add_argument("--raw", required=True)
     r.add_argument("--upigz", required=True)
-    r.add_argument("--rapidgzip", required=True)
+    r.add_argument("--rapidgzip")
+    r.add_argument("--base-upigz", help="the base's build: run head against base only")
+    r.add_argument("--base", help="the base's commit (with --base-upigz)")
     r.add_argument("--rounds", type=int, default=10)
     r.add_argument("--threads", type=lambda s: [int(x) for x in s.split(",")], default=[1, 2, 4])
     r.add_argument("--head", default="unknown")
     r.add_argument("--run")
     a = ap.parse_args()
+    if not a.base_upigz and not a.rapidgzip:
+        ap.error("--rapidgzip is needed unless --base-upigz is given")
     sys.exit(run(a))
 
 
