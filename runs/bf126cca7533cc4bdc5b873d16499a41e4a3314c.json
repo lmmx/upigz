@@ -1,0 +1,318 @@
+{
+ "bench": "1.0.0",
+ "mode": "master",
+ "head": "bf126cca7533cc4bdc5b873d16499a41e4a3314c",
+ "base": null,
+ "date": "2026-11-22T20:00:35Z",
+ "run": "https://github.com/lmmx/upigz/actions/runs/45063041276",
+ "rounds": 10,
+ "threads": [
+  1,
+  2,
+  4
+ ],
+ "machine": {
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "cores": 4,
+  "kernel": "7.0.0-1020-azure"
+ },
+ "toolchain": {
+  "rustc": "1.99.1",
+  "rapidgzip": "0.16.2",
+  "igzip": "2.31.1",
+  "libdeflate": "1.23",
+  "pigz": "2.8",
+  "gzip": "1.14"
+ },
+ "arms": [
+  "gzip",
+  "igzip",
+  "libdeflate",
+  "pigz",
+  "rapidgzip"
+ ],
+ "parallel": {
+  "upigz": true,
+  "gzip": false,
+  "igzip": false,
+  "libdeflate": false,
+  "pigz": false,
+  "rapidgzip": true
+ },
+ "reference": "upigz",
+ "corpora": {
+  "wikidata": {
+   "file": "wd-256.json.gz",
+   "bytes": 40095641,
+   "out": 268385295,
+   "sha256": "5de4eebf486518c14592d6b3df4f289b26840e8b9fc2fbbc3d9e792b9efea868",
+   "gz_sha256": "630328ac20fc17662911ea662e00a8ac94abddcdd7b1daf26dd37af2b8d6fd13",
+   "source": "wikidata-20261116-all.json.gz: the first 256 MiB, whole lines, gzip -6 -n (bench/ci_corpus.py)"
+  }
+ },
+ "parity": true,
+ "figures": {
+  "wikidata": {
+   "1": {
+    "arms": {
+     "upigz": {
+      "arm": "upigz",
+      "parallel": true,
+      "threads_run": 1,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.4813,
+      "wall_best": 0.4764,
+      "cpu": 0.4842,
+      "rss_mb": 132.5,
+      "out": 268385295,
+      "mb_s": 557.6,
+      "errors": []
+     },
+     "rapidgzip": {
+      "arm": "rapidgzip",
+      "parallel": true,
+      "threads_run": 1,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.2594,
+      "wall_best": 0.2564,
+      "cpu": 0.2592,
+      "rss_mb": 81.3,
+      "out": 268385295,
+      "mb_s": 1034.6,
+      "errors": [],
+      "wall_ratio": [
+       0.5387,
+       0.5358,
+       0.5417
+      ],
+      "cpu_ratio": [
+       0.535,
+       0.5322,
+       0.5379
+      ],
+      "rss_ratio": [
+       0.6143,
+       0.6137,
+       0.6149
+      ]
+     },
+     "igzip": {
+      "arm": "igzip",
+      "parallel": false,
+      "threads_run": 1,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.1958,
+      "wall_best": 0.1951,
+      "cpu": 0.1956,
+      "rss_mb": 24.4,
+      "out": 268385295,
+      "mb_s": 1370.7,
+      "errors": [],
+      "wall_ratio": [
+       0.4074,
+       0.4052,
+       0.4097
+      ],
+      "cpu_ratio": [
+       0.4046,
+       0.4024,
+       0.4067
+      ],
+      "rss_ratio": [
+       0.1846,
+       0.1845,
+       0.1848
+      ]
+     },
+     "libdeflate": {
+      "arm": "libdeflate",
+      "parallel": false,
+      "threads_run": 1,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.2724,
+      "wall_best": 0.2704,
+      "cpu": 0.2722,
+      "rss_mb": 295.7,
+      "out": 268385295,
+      "mb_s": 985.2,
+      "errors": [],
+      "wall_ratio": [
+       0.5672,
+       0.5634,
+       0.5711
+      ],
+      "cpu_ratio": [
+       0.5633,
+       0.5596,
+       0.5671
+      ],
+      "rss_ratio": [
+       2.2356,
+       2.2338,
+       2.2373
+      ]
+     },
+     "pigz": {
+      "arm": "pigz",
+      "parallel": false,
+      "threads_run": 1,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.4443,
+      "wall_best": 0.4333,
+      "cpu": 0.611,
+      "rss_mb": 24.4,
+      "out": 268385295,
+      "mb_s": 604.1,
+      "errors": [],
+      "wall_ratio": [
+       0.9216,
+       0.9097,
+       0.9337
+      ],
+      "cpu_ratio": [
+       1.2632,
+       1.2498,
+       1.2767
+      ],
+      "rss_ratio": [
+       0.1846,
+       0.1845,
+       0.1848
+      ]
+     },
+     "gzip": {
+      "arm": "gzip",
+      "parallel": false,
+      "threads_run": 1,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.4039,
+      "wall_best": 0.4032,
+      "cpu": 0.4037,
+      "rss_mb": 24.4,
+      "out": 268385295,
+      "mb_s": 664.5,
+      "errors": [],
+      "wall_ratio": [
+       0.8398,
+       0.8358,
+       0.8438
+      ],
+      "cpu_ratio": [
+       0.8342,
+       0.8305,
+       0.8379
+      ],
+      "rss_ratio": [
+       0.1846,
+       0.1845,
+       0.1848
+      ]
+     }
+    },
+    "same_bytes": true
+   },
+   "2": {
+    "arms": {
+     "upigz": {
+      "arm": "upigz",
+      "parallel": true,
+      "threads_run": 2,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.2712,
+      "wall_best": 0.2642,
+      "cpu": 0.5094,
+      "rss_mb": 197.0,
+      "out": 268385295,
+      "mb_s": 989.5,
+      "errors": []
+     },
+     "rapidgzip": {
+      "arm": "rapidgzip",
+      "parallel": true,
+      "threads_run": 2,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.3649,
+      "wall_best": 0.3583,
+      "cpu": 0.6937,
+      "rss_mb": 191.0,
+      "out": 268385295,
+      "mb_s": 735.5,
+      "errors": [],
+      "wall_ratio": [
+       1.347,
+       1.3126,
+       1.3823
+      ],
+      "cpu_ratio": [
+       1.3601,
+       1.3271,
+       1.394
+      ],
+      "rss_ratio": [
+       1.0071,
+       0.9616,
+       1.0548
+      ]
+     }
+    },
+    "same_bytes": true
+   },
+   "4": {
+    "arms": {
+     "upigz": {
+      "arm": "upigz",
+      "parallel": true,
+      "threads_run": 4,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.2226,
+      "wall_best": 0.216,
+      "cpu": 0.7596,
+      "rss_mb": 260.6,
+      "out": 268385295,
+      "mb_s": 1205.6,
+      "errors": []
+     },
+     "rapidgzip": {
+      "arm": "rapidgzip",
+      "parallel": true,
+      "threads_run": 4,
+      "same_bytes": true,
+      "n": 10,
+      "wall": 0.312,
+      "wall_best": 0.3036,
+      "cpu": 1.0053,
+      "rss_mb": 334.6,
+      "out": 268385295,
+      "mb_s": 860.2,
+      "errors": [],
+      "wall_ratio": [
+       1.3934,
+       1.3699,
+       1.4173
+      ],
+      "cpu_ratio": [
+       1.3274,
+       1.313,
+       1.342
+      ],
+      "rss_ratio": [
+       1.1891,
+       1.1473,
+       1.2324
+      ]
+     }
+    },
+    "same_bytes": true
+   }
+  }
+ }
+}
