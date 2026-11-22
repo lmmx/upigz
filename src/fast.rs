@@ -327,6 +327,86 @@ pub mod prof {
     }
 }
 
+/// An output symbol: a byte (the real decoder) or a 16-bit symbol (speculative decoding,
+/// where values >= 256 are markers for unknown window bytes). Copies move 8-byte words.
+pub trait Sym: Copy + Default + Send + Sync + 'static {
+    const PW: usize; // symbols per 8-byte word
+    type W: Copy;
+    fn lit(b: u8) -> Self;
+    fn rdw(s: &[Self], i: usize) -> Self::W;
+    fn wrw(s: &mut [Self], i: usize, w: Self::W);
+    fn splat(v: Self) -> Self::W;
+}
+
+impl Sym for u8 {
+    const PW: usize = 8;
+    type W = [u8; 8];
+    #[inline(always)]
+    fn lit(b: u8) -> u8 {
+        b
+    }
+    #[inline(always)]
+    fn rdw(s: &[u8], i: usize) -> [u8; 8] {
+        rd!(s, i, 8)
+    }
+    #[inline(always)]
+    fn wrw(s: &mut [u8], i: usize, w: [u8; 8]) {
+        wr!(s, i, w, 8)
+    }
+    #[inline(always)]
+    fn splat(v: u8) -> [u8; 8] {
+        [v; 8]
+    }
+}
+
+impl Sym for u16 {
+    const PW: usize = 4;
+    type W = [u16; 4];
+    #[inline(always)]
+    fn lit(b: u8) -> u16 {
+        b as u16
+    }
+    #[inline(always)]
+    fn rdw(s: &[u16], i: usize) -> [u16; 4] {
+        #[cfg(feature = "unchecked")]
+        unsafe {
+            (s.as_ptr().add(i) as *const [u16; 4]).read_unaligned()
+        }
+        #[cfg(not(feature = "unchecked"))]
+        s[i..i + 4].try_into().unwrap()
+    }
+    #[inline(always)]
+    fn wrw(s: &mut [u16], i: usize, w: [u16; 4]) {
+        #[cfg(feature = "unchecked")]
+        unsafe {
+            (s.as_mut_ptr().add(i) as *mut [u16; 4]).write_unaligned(w)
+        }
+        #[cfg(not(feature = "unchecked"))]
+        s[i..i + 4].copy_from_slice(&w)
+    }
+    #[inline(always)]
+    fn splat(v: u16) -> [u16; 4] {
+        [v; 4]
+    }
+}
+
+/// Kraft equality: the lengths form a complete prefix code.
+fn complete(lens: &[u8]) -> bool {
+    let mut count = [0u16; 16];
+    for &l in lens {
+        count[l as usize] += 1;
+    }
+    count[0] = 0;
+    let mut left: i32 = 1;
+    for c in &count[1..] {
+        left = (left << 1) - *c as i32;
+        if left < 0 {
+            return false;
+        }
+    }
+    left == 0
+}
+
 pub struct Decoder {
     lit: Box<[u32; LIT_ENOUGH]>,
     dist: Box<[u32; DIST_ENOUGH]>,
@@ -346,6 +426,14 @@ struct Bits<'a> {
 }
 
 impl Bits<'_> {
+    fn at(inp: &[u8], bitpos: u64) -> Result<Bits<'_>, Err> {
+        let mut b = Bits { inp, pos: (bitpos / 8) as usize, bb: 0, bc: 0 };
+        let skip = (bitpos % 8) as u32;
+        if skip != 0 {
+            b.take(skip)?;
+        }
+        Ok(b)
+    }
     #[inline(always)]
     fn refill(&mut self) -> Result<(), Err> {
         let w = self.inp.get(self.pos..self.pos + 8).ok_or("input overrun")?;
@@ -371,6 +459,9 @@ impl Bits<'_> {
     fn byte_pos(&self) -> usize {
         self.pos - (self.bc as usize >> 3)
     }
+    fn bitpos(&self) -> u64 {
+        self.pos as u64 * 8 - self.bc as u64
+    }
 }
 
 /// The extra bits after a length/distance code, for non-exceptional entries (flag bits
@@ -392,6 +483,21 @@ fn extra(saved: u64, e: u32) -> usize {
 }
 
 const OUT_MARGIN: usize = 258 + 64;
+pub const SLACK: usize = 16;
+
+/// How a block body ended.
+enum Body {
+    End(usize),  // end of block; output cursor
+    Full(usize), // (growable output only) stopped at a symbol boundary for more room
+}
+
+/// Where a run stopped.
+pub struct Out {
+    pub o: usize,           // output cursor
+    pub end_bitpos: u64,    // bit position of the next unread bit
+    pub finished: bool,     // the final block ended (else: stopped at a block start >= stop)
+    pub blocks: usize,      // blocks decoded
+}
 
 impl Decoder {
     /// Decode the DEFLATE stream starting at `inp[start]` into `out[..limit]` (`out` has at
@@ -402,50 +508,118 @@ impl Decoder {
         loop {
             let last = b.take(1)? == 1;
             match b.take(2)? {
-                0 => {
-                    b.align();
-                    let p = b.byte_pos();
-                    let h = inp.get(p..p + 4).ok_or("input overrun")?;
-                    let len = u16::from_le_bytes([h[0], h[1]]) as usize;
-                    if len != !u16::from_le_bytes([h[2], h[3]]) as usize {
-                        return Err("stored length mismatch");
+                0 => o = self.stored(&mut b, out, o, limit)?,
+                t => {
+                    self.tables(&mut b, t)?;
+                    match self.body::<u8>(&mut b, out, o, limit, false)? {
+                        Body::End(n) => o = n,
+                        Body::Full(_) => unreachable!(),
                     }
-                    let src = inp.get(p + 4..p + 4 + len).ok_or("input overrun")?;
-                    if o + len > limit {
-                        return Err("output overrun");
-                    }
-                    out[o..o + len].copy_from_slice(src);
-                    o += len;
-                    b = Bits { inp, pos: p + 4 + len, bb: 0, bc: 0 };
                 }
-                1 => {
-                    let mut l = [0u8; 320];
-                    l[..144].fill(8);
-                    l[144..256].fill(9);
-                    l[256..280].fill(7);
-                    l[280..288].fill(8);
-                    l[288..320].fill(5);
-                    build(&mut self.lit[..], &l[..288], LB, lit_entry)?;
-                    build(&mut self.dist[..], &l[288..320], DB, dist_entry)?;
-                    o = self.body(&mut b, out, o, limit)?;
-                }
-                2 => {
-                    #[cfg(feature = "census")]
-                    let t0 = std::time::Instant::now();
-                    self.dynamic_header(&mut b)?;
-                    #[cfg(feature = "census")]
-                    {
-                        prof::add(&prof::HEADER_NS, t0.elapsed().as_nanos() as u64);
-                        prof::add(&prof::BLOCKS, 1);
-                    }
-                    o = self.body(&mut b, out, o, limit)?;
-                }
-                _ => return Err("invalid block type"),
             }
             if last {
                 b.align();
                 return Ok((o, b.byte_pos()));
             }
+        }
+    }
+
+    /// Decode from bit position `bitpos` (a block start) into a growable buffer, appending at
+    /// `o0` (`out[..o0]` is history: a known window, or window markers). Stops when the final
+    /// block ends or when a block would start at or past `stop_bitpos`.
+    pub fn run<T: Sym>(&mut self, inp: &[u8], bitpos: u64, out: &mut Vec<T>, o0: usize, stop_bitpos: u64) -> Result<Out, Err> {
+        let mut b = Bits::at(inp, bitpos)?;
+        let mut o = o0;
+        let mut blocks = 0;
+        loop {
+            let bp = b.bitpos();
+            if bp >= stop_bitpos {
+                return Ok(Out { o, end_bitpos: bp, finished: false, blocks });
+            }
+            blocks += 1;
+            let last = b.take(1)? == 1;
+            let t = b.take(2)?;
+            if t == 0 {
+                if out.len() < o + 65536 + SLACK {
+                    out.resize((out.len() * 2).max(o + 65536 + SLACK), T::default());
+                }
+                let lim = out.len() - SLACK;
+                o = self.stored(&mut b, out, o, lim)?;
+            } else {
+                self.tables(&mut b, t)?;
+                loop {
+                    if out.len() < o + (1 << 20) + SLACK {
+                        out.resize((out.len() * 2).max(o + (1 << 20) + SLACK), T::default());
+                    }
+                    let lim = out.len() - SLACK;
+                    match self.body::<T>(&mut b, out, o, lim, true)? {
+                        Body::End(n) => {
+                            o = n;
+                            break;
+                        }
+                        Body::Full(n) => o = n,
+                    }
+                }
+            }
+            if last {
+                b.align();
+                return Ok(Out { o, end_bitpos: b.bitpos(), finished: true, blocks });
+            }
+        }
+    }
+
+    /// Whether a dynamic block header parses at `bitpos` with complete codes (the block
+    /// finder's full check). Builds this decoder's tables as a side effect.
+    pub fn header_ok(&mut self, inp: &[u8], bitpos: u64) -> bool {
+        let Ok(mut b) = Bits::at(inp, bitpos) else { return false };
+        let (Ok(0), Ok(2)) = (b.take(1), b.take(2)) else { return false };
+        self.dynamic_header_strict(&mut b).is_ok()
+    }
+
+    fn stored<T: Sym>(&mut self, b: &mut Bits<'_>, out: &mut [T], o: usize, limit: usize) -> Result<usize, Err> {
+        b.align();
+        let inp = b.inp;
+        let p = b.byte_pos();
+        let h = inp.get(p..p + 4).ok_or("input overrun")?;
+        let len = u16::from_le_bytes([h[0], h[1]]) as usize;
+        if len != !u16::from_le_bytes([h[2], h[3]]) as usize {
+            return Err("stored length mismatch");
+        }
+        let src = inp.get(p + 4..p + 4 + len).ok_or("input overrun")?;
+        if o + len > limit {
+            return Err("output overrun");
+        }
+        for (d, &x) in out[o..o + len].iter_mut().zip(src) {
+            *d = T::lit(x);
+        }
+        *b = Bits { inp, pos: p + 4 + len, bb: 0, bc: 0 };
+        Ok(o + len)
+    }
+
+    fn tables(&mut self, b: &mut Bits<'_>, t: u32) -> Result<(), Err> {
+        match t {
+            1 => {
+                let mut l = [0u8; 320];
+                l[..144].fill(8);
+                l[144..256].fill(9);
+                l[256..280].fill(7);
+                l[280..288].fill(8);
+                l[288..320].fill(5);
+                build(&mut self.lit[..], &l[..288], LB, lit_entry)?;
+                build(&mut self.dist[..], &l[288..320], DB, dist_entry)
+            }
+            2 => {
+                #[cfg(feature = "census")]
+                let t0 = std::time::Instant::now();
+                let r = self.dynamic_header(b);
+                #[cfg(feature = "census")]
+                {
+                    prof::add(&prof::HEADER_NS, t0.elapsed().as_nanos() as u64);
+                    prof::add(&prof::BLOCKS, 1);
+                }
+                r
+            }
+            _ => Err("invalid block type"),
         }
     }
 
@@ -525,9 +699,91 @@ impl Decoder {
         Ok(())
     }
 
+    fn dynamic_header_strict(&mut self, b: &mut Bits<'_>) -> Result<(), Err> {
+        let hlit = b.take(5)? as usize + 257;
+        let hdist = b.take(5)? as usize + 1;
+        let hclen = b.take(4)? as usize + 4;
+        if hlit > 286 || hdist > 30 {
+            return Err("too many codes");
+        }
+        const ORD: [usize; 19] = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+        let mut pl = [0u8; 19];
+        for &i in &ORD[..hclen] {
+            pl[i] = b.take(3)? as u8;
+        }
+        // precode: 7-bit direct table, entry = len | sym << 16
+        let mut pt = [INVALID; 128];
+        build(&mut pt, &pl, 7, |s, l| ((s as u32) << 16) | l)?;
+        // Code lengths: one refill serves 4 precode symbols (<= 7 + 7 bits each); repeats are
+        // written as fixed-width chunks into slack past the end, then bounds are checked.
+        let total = hlit + hdist;
+        let mut l = [0u8; 320 + 160];
+        let mut i = 0;
+        'lens: while i < total {
+            if b.bc < 56 {
+                b.refill()?;
+            }
+            for _ in 0..4 {
+                let e = pt[(b.bb & 127) as usize];
+                if e & EXC != 0 {
+                    return Err("invalid precode");
+                }
+                let sl = e & 0xff;
+                b.bb >>= sl;
+                b.bc -= sl;
+                let sym = e >> 16;
+                if sym < 16 {
+                    l[i] = sym as u8;
+                    i += 1;
+                } else if sym == 16 {
+                    if i == 0 {
+                        return Err("repeat with no previous length");
+                    }
+                    let n = 3 + (b.bb & 3) as usize;
+                    b.bb >>= 2;
+                    b.bc -= 2;
+                    let v = l[i - 1];
+                    l[i..i + 8].copy_from_slice(&[v; 8]);
+                    i += n;
+                } else if sym == 17 {
+                    let n = 3 + (b.bb & 7) as usize;
+                    b.bb >>= 3;
+                    b.bc -= 3;
+                    l[i..i + 16].copy_from_slice(&[0; 16]);
+                    i += n;
+                } else {
+                    let n = 11 + (b.bb & 127) as usize;
+                    b.bb >>= 7;
+                    b.bc -= 7;
+                    l[i..i + 138].fill(0);
+                    i += n;
+                }
+                if i >= total {
+                    break 'lens;
+                }
+            }
+        }
+        if i > total {
+            return Err("code lengths overflow");
+        }
+        if l[256] == 0 {
+            return Err("no end-of-block code");
+        }
+        #[cfg(feature = "census")]
+        let t0 = std::time::Instant::now();
+        if !complete(&l[..hlit]) || !complete(&l[hlit..total]) {
+            return Err("incomplete code");
+        }
+        build(&mut self.lit[..], &l[..hlit], LB, lit_entry)?;
+        build(&mut self.dist[..], &l[hlit..total], DB, dist_entry)?;
+        #[cfg(feature = "census")]
+        prof::add(&prof::BUILD_NS, t0.elapsed().as_nanos() as u64);
+        Ok(())
+    }
+
     /// One block body: the fast loop while margins hold, then the checked loop.
     #[inline(never)]
-    fn body(&self, b: &mut Bits<'_>, out: &mut [u8], mut o: usize, limit: usize) -> Result<usize, Err> {
+    fn body<T: Sym>(&self, b: &mut Bits<'_>, out: &mut [T], mut o: usize, limit: usize, grow: bool) -> Result<Body, Err> {
         let lit: &[u32; LIT_ENOUGH] = &self.lit;
         let dist: &[u32; DIST_ENOUGH] = &self.dist;
         let inp = b.inp;
@@ -576,21 +832,21 @@ impl Decoder {
                 e = lit[(bb & LM) as usize];
                 saved = bb;
                 consume!(e);
-                put!(out, o, l);
+                put!(out, o, T::lit(l));
                 o += 1;
                 if e & LIT != 0 {
                     let l = (e >> 16) as u8;
                     e = lit[(bb & LM) as usize];
                     saved = bb;
                     consume!(e);
-                    put!(out, o, l);
+                    put!(out, o, T::lit(l));
                     o += 1;
                     if e & LIT != 0 {
                         // a third literal, in lieu of the primary item
                         let l = (e >> 16) as u8;
                         e = lit[(bb & LM) as usize];
                         refill!();
-                        put!(out, o, l);
+                        put!(out, o, T::lit(l));
                         o += 1;
                         continue;
                     }
@@ -613,7 +869,7 @@ impl Decoder {
                     let l = (e >> 16) as u8;
                     e = lit[(bb & LM) as usize];
                     refill!();
-                    put!(out, o, l);
+                    put!(out, o, T::lit(l));
                     o += 1;
                     continue;
                 }
@@ -656,23 +912,23 @@ impl Decoder {
             refill!();
             let mut s = o - dst;
             let mut t = o;
-            if dst >= 8 {
-                // libdeflate's shape: five 8-byte words unconditionally (len <= 40), then
-                // five-word strides; may write up to 39 bytes past `end`, inside the margin
+            if dst >= T::PW {
+                // libdeflate's shape: five words unconditionally, then five-word strides;
+                // may write up to five words past `end`, inside the margin
                 macro_rules! w5 {
                     () => {
-                        let v: [u8; 8] = rd!(out, s, 8);
-                        wr!(out, t, v, 8);
-                        let v: [u8; 8] = rd!(out, s + 8, 8);
-                        wr!(out, t + 8, v, 8);
-                        let v: [u8; 8] = rd!(out, s + 16, 8);
-                        wr!(out, t + 16, v, 8);
-                        let v: [u8; 8] = rd!(out, s + 24, 8);
-                        wr!(out, t + 24, v, 8);
-                        let v: [u8; 8] = rd!(out, s + 32, 8);
-                        wr!(out, t + 32, v, 8);
-                        s += 40;
-                        t += 40;
+                        let v = T::rdw(out, s);
+                        T::wrw(out, t, v);
+                        let v = T::rdw(out, s + T::PW);
+                        T::wrw(out, t + T::PW, v);
+                        let v = T::rdw(out, s + 2 * T::PW);
+                        T::wrw(out, t + 2 * T::PW, v);
+                        let v = T::rdw(out, s + 3 * T::PW);
+                        T::wrw(out, t + 3 * T::PW, v);
+                        let v = T::rdw(out, s + 4 * T::PW);
+                        T::wrw(out, t + 4 * T::PW, v);
+                        s += 5 * T::PW;
+                        t += 5 * T::PW;
                     };
                 }
                 w5!();
@@ -680,13 +936,15 @@ impl Decoder {
                     w5!();
                 }
             } else if dst == 1 {
-                let v = [get!(out, s); 16];
-                wr!(out, t, v, 16);
-                wr!(out, t + 16, v, 16);
-                t += 32;
+                let v = T::splat(get!(out, s));
+                T::wrw(out, t, v);
+                T::wrw(out, t + T::PW, v);
+                T::wrw(out, t + 2 * T::PW, v);
+                T::wrw(out, t + 3 * T::PW, v);
+                t += 4 * T::PW;
                 while t < end {
-                    wr!(out, t, v, 16);
-                    t += 16;
+                    T::wrw(out, t, v);
+                    t += T::PW;
                 }
             } else {
                 while t < end {
@@ -703,11 +961,18 @@ impl Decoder {
             b.pos = pos;
             b.bb = bb;
             b.bc = bc;
-            return Ok(o);
+            return Ok(Body::End(o));
         }
 
         // ---- checked loop: one symbol at a time, exact bounds ----
         loop {
+            if grow && o + 258 > limit {
+                // a growable buffer: stop at this symbol boundary and ask for room
+                b.pos = pos;
+                b.bb = bb;
+                b.bc = bc;
+                return Ok(Body::Full(o));
+            }
             if bc < 56 {
                 let w = inp.get(pos..pos + 8).ok_or("input overrun")?;
                 bb |= u64::from_le_bytes(w.try_into().unwrap()) << bc;
@@ -726,7 +991,7 @@ impl Decoder {
                 }
                 bb >>= e & 0x3f;
                 bc -= e & 0xff;
-                out[o] = (e >> 16) as u8;
+                out[o] = T::lit((e >> 16) as u8);
                 o += 1;
                 continue;
             }
@@ -769,6 +1034,6 @@ impl Decoder {
         b.pos = pos;
         b.bb = bb;
         b.bc = bc;
-        Ok(o)
+        Ok(Body::End(o))
     }
 }

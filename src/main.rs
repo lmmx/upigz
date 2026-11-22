@@ -10,6 +10,7 @@
 mod fast;
 mod inflate;
 mod spec;
+mod par;
 
 use inflate::{decode_group, Stream, IN_PAD, SLACK};
 use std::time::Instant;
@@ -339,8 +340,137 @@ fn markers(a: &[String]) {
     );
 }
 
+/// par <file.gz> <reference> <rounds> <threads,threads,..> <chunk KiB>: the parallel
+/// single-member decoder at each thread count vs single-thread arms, paired rounds.
+fn par_mode(a: &[String]) {
+    let (path, refp, rounds) = (&a[2], &a[3], a[4].parse::<usize>().unwrap());
+    let threads: Vec<usize> = a[5].split(',').map(|x| x.parse().unwrap()).collect();
+    let chunk = a[6].parse::<usize>().unwrap() * 1024;
+    let file = std::fs::read(path).unwrap();
+    let reference = std::fs::read(refp).unwrap();
+    let body = gz_body(&file, 0);
+    let body_end = file.len() - 8;
+    let mut inp = file.clone();
+    inp.resize(file.len() + IN_PAD, 0);
+    let mut pool = Vec::new();
+    for &t in &threads {
+        let st = par::decompress(&inp, body, body_end, t, chunk, &mut pool).unwrap();
+        let mut off = 0;
+        for (k, c) in pool.iter().enumerate() {
+            assert!(c.bytes[..c.len] == reference[off..off + c.len], "par t={t}: chunk {k} differs");
+            off += c.len;
+        }
+        assert_eq!(off, reference.len());
+        eprintln!("par t={t}: {} chunks, byte-exact, markers {:.1}% of output", st.chunks, 100.0 * st.marker_frac);
+    }
+    let mut single = vec![0u8; reference.len() + SLACK];
+    let mut fd = fast::Decoder::default();
+    let mut ld = libdeflater::Decompressor::new();
+    let mut names: Vec<String> = threads.iter().map(|t| format!("par-t{t}")).collect();
+    names.push("fast".into());
+    names.push("libdeflate".into());
+    let mut seed = 0x2545F4914F6CDD1Du64;
+    for r in 0..rounds {
+        for i in (1..names.len()).rev() {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            names.swap(i, (seed % (i as u64 + 1)) as usize);
+        }
+        for nm in &names {
+            let t0 = Instant::now();
+            if let Some(t) = nm.strip_prefix("par-t") {
+                par::decompress(&inp, body, body_end, t.parse().unwrap(), chunk, &mut pool).unwrap();
+            } else if nm == "fast" {
+                fd.decode(&inp, body, &mut single, reference.len()).unwrap();
+            } else {
+                ld.deflate_decompress(&inp[body..body_end], &mut single[..reference.len()]).unwrap();
+            }
+            println!("{r} {nm} {} {}", t0.elapsed().as_nanos(), reference.len());
+        }
+    }
+}
+
+/// cat <file.gz> <threads> <chunk KiB>: like `zcat`, for single-member gzip: read the file,
+/// decode in parallel, check the CRC-32 and size against the trailer (per-chunk CRCs computed
+/// in parallel and combined), write the bytes to stdout.
+fn cat_mode(a: &[String]) {
+    use std::io::Write;
+    let path = &a[2];
+    let threads: usize = a[3].parse().unwrap();
+    let chunk = a[4].parse::<usize>().unwrap() * 1024;
+    let mut inp = std::fs::read(path).unwrap();
+    let flen = inp.len();
+    inp.resize(flen + IN_PAD, 0);
+    let body = gz_body(&inp, 0);
+    let body_end = flen - 8;
+    let want_crc = u32::from_le_bytes(inp[flen - 8..flen - 4].try_into().unwrap());
+    let want_len = u32::from_le_bytes(inp[flen - 4..flen].try_into().unwrap());
+    let mut pool = Vec::new();
+    par::decompress(&inp, body, body_end, threads, chunk, &mut pool).unwrap();
+    // CRC per chunk in parallel, then combined in order
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let crcs: Vec<std::sync::Mutex<Option<crc32fast::Hasher>>> = pool.iter().map(|_| std::sync::Mutex::new(None)).collect();
+    std::thread::scope(|sc| {
+        for _ in 0..threads {
+            sc.spawn(|| loop {
+                let k = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                if k >= pool.len() {
+                    break;
+                }
+                let mut h = crc32fast::Hasher::new();
+                h.update(&pool[k].bytes[..pool[k].len]);
+                *crcs[k].lock().unwrap() = Some(h);
+            });
+        }
+    });
+    let mut h = crc32fast::Hasher::new();
+    let mut total = 0usize;
+    for (c, k) in crcs.into_iter().zip(&pool) {
+        h.combine(&c.into_inner().unwrap().unwrap());
+        total += k.len;
+    }
+    assert_eq!(h.finalize(), want_crc, "CRC-32 mismatch");
+    assert_eq!(total as u32, want_len, "ISIZE mismatch");
+    let mut out = std::io::stdout().lock();
+    for c in &pool {
+        out.write_all(&c.bytes[..c.len]).unwrap();
+    }
+}
+
+/// zcat <file.gz> <threads> <chunk KiB> [cap]: the streaming parallel decoder, bounded
+/// memory, CRC-32 and ISIZE checked, bytes to stdout.
+fn zcat_mode(a: &[String]) {
+    let path = &a[2];
+    let threads: usize = a[3].parse().unwrap();
+    let chunk = a[4].parse::<usize>().unwrap() * 1024;
+    let cap: usize = a.get(5).map_or(threads + 2, |x| x.parse().unwrap());
+    let mut inp = std::fs::read(path).unwrap();
+    let flen = inp.len();
+    inp.resize(flen + IN_PAD, 0);
+    let body = gz_body(&inp, 0);
+    let want_crc = u32::from_le_bytes(inp[flen - 8..flen - 4].try_into().unwrap());
+    let want_len = u32::from_le_bytes(inp[flen - 4..flen].try_into().unwrap());
+    let out = std::io::stdout().lock();
+    let st = par::stream(&inp, body, flen - 8, threads, chunk, cap, std::io::BufWriter::with_capacity(1 << 20, out)).unwrap();
+    assert_eq!(st.crc, want_crc, "CRC-32 mismatch");
+    assert_eq!(st.bytes as u32, want_len, "ISIZE mismatch");
+    if std::env::var_os("UPIGZ_STATS").is_some() {
+        eprintln!("{} chunks, finder {:.3}s", st.chunks, st.finder_s);
+    }
+}
+
 fn main() {
     let a: Vec<String> = std::env::args().collect();
+    if a[1] == "zcat" {
+        return zcat_mode(&a);
+    }
+    if a[1] == "cat" {
+        return cat_mode(&a);
+    }
+    if a[1] == "par" {
+        return par_mode(&a);
+    }
     if a[1] == "markers" {
         return markers(&a);
     }
