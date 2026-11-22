@@ -1,0 +1,29 @@
+# upigz
+
+> A fast parallel gzip/DEFLATE decoder in Rust, built for the single-member file.
+
+upigz is a parallel gzip/DEFLATE decoder in Rust, built for large single-member files: it
+decodes chunks speculatively, before their 32 KiB history is known, then resolves them. It is
+a research prototype. Each link below is the Markdown version of a page of
+https://lmmx.github.io/upigz/.
+
+## Start here
+
+- [Home](<https://lmmx.github.io/upigz/pr-preview/pr-16/index.md>): A fast parallel gzip/DEFLATE decoder in Rust, built for the single-member file.
+- [Get started](<https://lmmx.github.io/upigz/pr-preview/pr-16/getting-started/index.md>): Building upigz from source and running its parallel zcat, and what the prototype doesn't do yet.
+
+## Benchmarks
+
+- [Benchmarks](<https://lmmx.github.io/upigz/pr-preview/pr-16/benchmarks/index.md>): upigz's figures so far, from the research host: the parallel single-member decoder against rapidgzip and igzip, and the single-thread kernel against libdeflate.
+
+## Journals
+
+- [Journals](<https://lmmx.github.io/upigz/pr-preview/pr-16/journal/index.md>): upigz's research journals: where they are, and what each one records.
+- [Interleaving within a thread](<https://lmmx.github.io/upigz/pr-preview/pr-16/journal/interleaved-inflate/index.md>): Interleaving K members in one thread doesn't speed up gzip decoding on real data; the parallelism that pays is across cores.
+- [The kernel and the first parallel win](<https://lmmx.github.io/upigz/pr-preview/pr-16/journal/kernel-and-parallel/index.md>): The single-thread kernel within 4–12% of libdeflate, and a streaming parallel single-member decoder ahead of rapidgzip -P4 on a 4-core host.
+- [The speculative-decode theorem](<https://lmmx.github.io/upigz/pr-preview/pr-16/journal/speculative-theorem/index.md>): The speculative-decode theorem stated precisely, checked by a counterexample hunt, and a plan for proving it in Lean.
+
+## Blog
+
+- [Blog](<https://lmmx.github.io/upigz/pr-preview/pr-16/blog/index.md>): What upigz's experiments are finding, and where they go next.
+- [One gzip member, four cores](<https://lmmx.github.io/upigz/pr-preview/pr-16/blog/2026-11-22-one-member-four-cores/index.md>): On a 4-core research VM, upigz decodes a 1.34 GB single-member Wikidata gzip in 0.68× rapidgzip's time, CRC checked, and its one-thread kernel is within 4–12% of libdeflate.

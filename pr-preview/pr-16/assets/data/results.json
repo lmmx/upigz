@@ -1,0 +1,215 @@
+{
+  "host": "research host: shared 4-vCPU cloud VM (Sapphire Rapids-class Xeon, 2.1 GHz, no PMU); indicative only",
+  "parallel": {
+    "source": "runs/race-big4.txt",
+    "reference": "rapidgzip-P4",
+    "bytes": 1342125409,
+    "arms": {
+      "igzip-1t": {
+        "gbps": 0.808,
+        "ratio": 1.003,
+        "lo": 0.918,
+        "hi": 1.096,
+        "rounds": 6
+      },
+      "rapidgzip-P4": {
+        "gbps": 0.798,
+        "ratio": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "rounds": 6
+      },
+      "rapidgzip-P4-verify": {
+        "gbps": 0.818,
+        "ratio": 0.98,
+        "lo": 0.884,
+        "hi": 1.085,
+        "rounds": 6
+      },
+      "upigz-P2-2M": {
+        "gbps": 0.685,
+        "ratio": 1.22,
+        "lo": 1.132,
+        "hi": 1.314,
+        "rounds": 6
+      },
+      "upigz-P3-2M": {
+        "gbps": 0.943,
+        "ratio": 0.864,
+        "lo": 0.81,
+        "hi": 0.921,
+        "rounds": 6
+      },
+      "upigz-P4-1M": {
+        "gbps": 1.209,
+        "ratio": 0.677,
+        "lo": 0.616,
+        "hi": 0.744,
+        "rounds": 6
+      },
+      "upigz-P4-2M": {
+        "gbps": 1.121,
+        "ratio": 0.711,
+        "lo": 0.638,
+        "hi": 0.792,
+        "rounds": 6
+      }
+    }
+  },
+  "parallel_safe": {
+    "source": "runs/race-safe.txt",
+    "reference": "rapidgzip-P4",
+    "bytes": 1342125409,
+    "arms": {
+      "rapidgzip-P4": {
+        "gbps": 0.861,
+        "ratio": 1.0,
+        "lo": 1.0,
+        "hi": 1.0,
+        "rounds": 6
+      },
+      "upigz-P4-safe": {
+        "gbps": 1.148,
+        "ratio": 0.75,
+        "lo": 0.698,
+        "hi": 0.807,
+        "rounds": 6
+      },
+      "upigz-P4-unchecked": {
+        "gbps": 1.19,
+        "ratio": 0.722,
+        "lo": 0.658,
+        "hi": 0.793,
+        "rounds": 6
+      }
+    }
+  },
+  "single_thread": {
+    "wikidata": {
+      "source": "runs/sota-wikidata.json.txt",
+      "reference": "libdeflate",
+      "bytes": 67098933,
+      "arms": {
+        "fast": {
+          "gbps": 0.937,
+          "ratio": 1.123,
+          "lo": 1.066,
+          "hi": 1.183,
+          "rounds": 11
+        },
+        "isal": {
+          "gbps": 0.947,
+          "ratio": 1.172,
+          "lo": 1.093,
+          "hi": 1.258,
+          "rounds": 11
+        },
+        "libdeflate": {
+          "gbps": 1.106,
+          "ratio": 1.0,
+          "lo": 1.0,
+          "hi": 1.0,
+          "rounds": 11
+        },
+        "libdeflate-aa": {
+          "gbps": 1.115,
+          "ratio": 0.993,
+          "lo": 0.94,
+          "hi": 1.05,
+          "rounds": 11
+        },
+        "zlib-rs": {
+          "gbps": 0.797,
+          "ratio": 1.366,
+          "lo": 1.312,
+          "hi": 1.423,
+          "rounds": 11
+        }
+      }
+    },
+    "source": {
+      "source": "runs/sota-source.tar.txt",
+      "reference": "libdeflate",
+      "bytes": 67108864,
+      "arms": {
+        "fast": {
+          "gbps": 0.601,
+          "ratio": 1.093,
+          "lo": 1.065,
+          "hi": 1.122,
+          "rounds": 11
+        },
+        "isal": {
+          "gbps": 0.582,
+          "ratio": 1.138,
+          "lo": 1.094,
+          "hi": 1.183,
+          "rounds": 11
+        },
+        "libdeflate": {
+          "gbps": 0.657,
+          "ratio": 1.0,
+          "lo": 1.0,
+          "hi": 1.0,
+          "rounds": 11
+        },
+        "libdeflate-aa": {
+          "gbps": 0.645,
+          "ratio": 1.006,
+          "lo": 0.987,
+          "hi": 1.025,
+          "rounds": 11
+        },
+        "zlib-rs": {
+          "gbps": 0.466,
+          "ratio": 1.41,
+          "lo": 1.378,
+          "hi": 1.443,
+          "rounds": 11
+        }
+      }
+    },
+    "binary": {
+      "source": "runs/sota-binary.tar.txt",
+      "reference": "libdeflate",
+      "bytes": 67108864,
+      "arms": {
+        "fast": {
+          "gbps": 0.521,
+          "ratio": 1.043,
+          "lo": 0.979,
+          "hi": 1.112,
+          "rounds": 11
+        },
+        "isal": {
+          "gbps": 0.475,
+          "ratio": 1.149,
+          "lo": 1.065,
+          "hi": 1.24,
+          "rounds": 11
+        },
+        "libdeflate": {
+          "gbps": 0.546,
+          "ratio": 1.0,
+          "lo": 1.0,
+          "hi": 1.0,
+          "rounds": 11
+        },
+        "libdeflate-aa": {
+          "gbps": 0.558,
+          "ratio": 0.987,
+          "lo": 0.959,
+          "hi": 1.016,
+          "rounds": 11
+        },
+        "zlib-rs": {
+          "gbps": 0.386,
+          "ratio": 1.391,
+          "lo": 1.289,
+          "hi": 1.502,
+          "rounds": 11
+        }
+      }
+    }
+  }
+}
