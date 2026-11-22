@@ -522,6 +522,24 @@ fn zcat_mode(a: &[String]) {
     let body = gz_body(&inp, 0);
     let want_crc = u32::from_le_bytes(inp[flen - 8..flen - 4].try_into().unwrap());
     let want_len = u32::from_le_bytes(inp[flen - 4..flen].try_into().unwrap());
+    if threads == 1 {
+        // one thread: the byte kernel straight through, no speculation (the CI bench's
+        // 1-thread row), then the same CRC-32 and ISIZE checks
+        use std::io::Write;
+        let mut d = fast::Decoder::default();
+        // ISIZE is the output's length mod 2^32: a capacity hint, not a bound
+        let mut buf: Vec<u8> = vec![0; want_len as usize + (1 << 17)];
+        let o = d
+            .run::<u8>(&inp, body as u64 * 8, &mut buf, 0, u64::MAX)
+            .unwrap();
+        assert!(o.finished, "the stream ended before its final block");
+        let mut h = crc32fast::Hasher::new();
+        h.update(&buf[..o.o]);
+        assert_eq!(h.finalize(), want_crc, "CRC-32 mismatch");
+        assert_eq!(o.o as u32, want_len, "ISIZE mismatch");
+        std::io::stdout().lock().write_all(&buf[..o.o]).unwrap();
+        return;
+    }
     let out = std::io::stdout().lock();
     let st = par::stream(
         &inp,
