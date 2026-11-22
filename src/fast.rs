@@ -72,17 +72,17 @@ macro_rules! wr {
 
 pub const LB: u32 = 11;
 pub const DB: u32 = 8;
-const LIT_ENOUGH: usize = 2342;
-const DIST_ENOUGH: usize = 402;
+pub(crate) const LIT_ENOUGH: usize = 2342;
+pub(crate) const DIST_ENOUGH: usize = 402;
 
 // Entry: bits 0..8 bits to consume; 8..12 code length (lengths/distances: where the extra
 // bits start) or a subtable's index bits; bit 13 end of block; bit 14 subtable; bit 15
 // exceptional (subtable, end of block or invalid); bits 16..31 value; bit 31 literal.
-const LIT: u32 = 1 << 31;
-const EXC: u32 = 1 << 15;
-const SUB: u32 = 1 << 14;
-const EOB: u32 = 1 << 13;
-const INVALID: u32 = EXC;
+pub(crate) const LIT: u32 = 1 << 31;
+pub(crate) const EXC: u32 = 1 << 15;
+pub(crate) const SUB: u32 = 1 << 14;
+pub(crate) const EOB: u32 = 1 << 13;
+pub(crate) const INVALID: u32 = EXC;
 
 const LEN_BASE: [u16; 29] = [
     3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115,
@@ -98,7 +98,7 @@ const DIST_EXTRA: [u8; 30] =
     [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
 
 /// `l`: the code length to consume from this (sub)table's index position.
-fn lit_entry(sym: usize, l: u32) -> u32 {
+pub(crate) fn lit_entry(sym: usize, l: u32) -> u32 {
     match sym {
         0..=255 => LIT | ((sym as u32) << 16) | (l << 8) | l,
         256 => EXC | EOB | (l << 8) | l,
@@ -109,7 +109,7 @@ fn lit_entry(sym: usize, l: u32) -> u32 {
         _ => INVALID | l,
     }
 }
-fn dist_entry(sym: usize, l: u32) -> u32 {
+pub(crate) fn dist_entry(sym: usize, l: u32) -> u32 {
     if sym < 30 {
         ((DIST_BASE[sym] as u32) << 16) | (l << 8) | (l + DIST_EXTRA[sym] as u32)
     } else {
@@ -198,7 +198,7 @@ fn build_slow<F: Fn(usize, u32) -> u32>(table: &mut [u32], lens: &[u8], bits: u3
 /// by contiguous copies; no clearing, since a complete code covers every slot), and the
 /// clearing builder for incomplete codes.
 #[inline(always)]
-fn build<F: Fn(usize, u32) -> u32 + Copy>(table: &mut [u32], lens: &[u8], bits: u32, entry: F) -> Result<(), Err> {
+pub(crate) fn build<F: Fn(usize, u32) -> u32 + Copy>(table: &mut [u32], lens: &[u8], bits: u32, entry: F) -> Result<(), Err> {
     let mut count = [0u16; 16];
     for &l in lens {
         count[l as usize] += 1;

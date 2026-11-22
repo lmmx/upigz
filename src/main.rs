@@ -9,6 +9,7 @@
 
 mod fast;
 mod inflate;
+mod spec;
 
 use inflate::{decode_group, Stream, IN_PAD, SLACK};
 use std::time::Instant;
@@ -279,8 +280,70 @@ fn run(a: &mut Arm, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
     }
 }
 
+/// markers <file.gz> <reference> <samples> <span bytes>: speculative runs from sampled real
+/// block starts with an unknown window; each checked against the reference, symbol by symbol.
+fn markers(a: &[String]) {
+    let (path, refp) = (&a[2], &a[3]);
+    let (samples, span): (usize, usize) = (a[4].parse().unwrap(), a[5].parse().unwrap());
+    let file = std::fs::read(path).unwrap();
+    let reference = std::fs::read(refp).unwrap();
+    let body = gz_body(&file, 0);
+    let mut inp = file.clone();
+    inp.resize(file.len() + IN_PAD, 0);
+    let mut sp = spec::Spec::default();
+    let full = sp.run(&inp, body as u64 * 8, usize::MAX, u64::MAX).unwrap();
+    assert!(full.finished);
+    let dec = &full.out[spec::WINDOW..];
+    assert_eq!(dec.len(), reference.len());
+    assert!(dec.iter().zip(&reference).all(|(&x, &y)| x == y as u16), "sequential decode differs");
+    let nb = full.blocks.len();
+    println!("{path}: {nb} blocks, sequential decode byte-exact; sampling {samples} starts, span {span}");
+    println!("{:>6} {:>9} {:>10} {:>9} {:>14} {:>10} {:>11} {:>12} {:>13}", "block", "out MiB", "decoded", "markers%", "last marker KiB", "win refs", "clean@ KiB", "mean run B", "marker-match%");
+    let mut lasts = Vec::new();
+    for k in 1..=samples {
+        let bi = k * (nb - 1) / (samples + 1);
+        let (bp, outpos) = full.blocks[bi];
+        let r = sp.run(&inp, bp, span, u64::MAX).unwrap();
+        // check: literals equal the reference; markers name the right window byte
+        for (i, &v) in r.out[spec::WINDOW..].iter().enumerate() {
+            let want = reference[outpos + i];
+            if v < 256 {
+                assert_eq!(v, want as u16, "literal mismatch at block {bi} +{i}");
+            } else {
+                let w = (v - 256) as usize;
+                assert_eq!(reference[outpos - spec::WINDOW + w], want, "marker resolves wrong at block {bi} +{i}");
+            }
+        }
+        let c = spec::census(&r);
+        let last = c.last_marker.map_or(0, |x| x + 1);
+        lasts.push(last);
+        println!(
+            "{bi:>6} {:>9.2} {:>10} {:>9.3} {:>14.1} {:>10} {:>11.1} {:>12.1} {:>13.2}",
+            outpos as f64 / (1 << 20) as f64,
+            c.decoded,
+            100.0 * c.markers as f64 / c.decoded as f64,
+            last as f64 / 1024.0,
+            c.window_refs,
+            (last + spec::WINDOW) as f64 / 1024.0,
+            c.markers as f64 / c.runs.max(1) as f64,
+            100.0 * r.marker_matches as f64 / r.matches.max(1) as f64
+        );
+    }
+    lasts.sort();
+    println!(
+        "last-marker offset KiB: median {:.1}, p90 {:.1}, max {:.1} (span {} KiB)",
+        lasts[lasts.len() / 2] as f64 / 1024.0,
+        lasts[lasts.len() * 9 / 10] as f64 / 1024.0,
+        *lasts.last().unwrap() as f64 / 1024.0,
+        span / 1024
+    );
+}
+
 fn main() {
     let a: Vec<String> = std::env::args().collect();
+    if a[1] == "markers" {
+        return markers(&a);
+    }
     let (path, refp, rounds) = (&a[1], &a[2], a[3].parse::<usize>().unwrap());
     let names: Vec<&str> = a[4].split(',').collect();
     let file = std::fs::read(path).unwrap();
