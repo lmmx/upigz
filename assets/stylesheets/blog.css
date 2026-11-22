@@ -925,3 +925,7 @@
   padding: 8px;
   border-radius: 4px;
 }
+
+/* result charts (docs/scripts/figures.py): interval whiskers and a reference line */
+.bf-fig .bf-whisker { stroke: var(--bf-ink); stroke-width: 1.5; fill: none; }
+.bf-fig .bf-ref { stroke: var(--bf-steel); stroke-width: 2; stroke-dasharray: 5 4; fill: none; }
