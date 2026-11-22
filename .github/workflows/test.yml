@@ -1,0 +1,79 @@
+name: Test
+
+# The crate's build and smoke test, and the Python tooling's tests. Adapted from lmmx/mibz2's
+# test.yml: upigz has no Rust tests, examples, fuzz targets or Python package yet, so their jobs
+# are not here. Not run yet, each added when the code is ready for it:
+# - `cargo fmt --check` and `cargo clippy -D warnings`: the research code from the research host
+#   is not formatted, and clippy warns on it;
+# - `cargo test --release`: there are no tests (`spectest` below is the correctness check).
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: never
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # ISA-L: the `isal` arm's library, linked through csrc/isal_shim.c (build.rs)
+      - name: System libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libisal-dev > /dev/null
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      # One toolchain (rust-toolchain.toml): every workflow that installs Rust names its
+      # channel, unless the line says why not (`# not the pin: ...`), and this job runs it
+      - name: The pinned toolchain everywhere
+        run: |
+          pin=$(sed -nE 's/^channel = "([^"]+)"$/\1/p' rust-toolchain.toml)
+          [ -n "$pin" ] || { echo "::error::rust-toolchain.toml names no channel"; exit 1; }
+          v=${pin//./\\.}
+          bad=$(grep -nE '^\s*(- )?uses: dtolnay/rust-toolchain@|^\s*rust-toolchain: ' .github/workflows/*.yml \
+            | grep -vE "dtolnay/rust-toolchain@$v( |$)|rust-toolchain: $v( |$)|not the pin" || true)
+          [ -z "$bad" ] || { echo "::error::Rust installed at another version than rust-toolchain.toml's $pin:"; echo "$bad"; exit 1; }
+          rustc -V | tee /dev/stderr | grep -q "^rustc $v " || { echo "::error::this job's rustc is not $pin"; exit 1; }
+      - name: Build
+        run: cargo build --release --locked
+      # the research arm (src/fast.rs's safety argument): it must keep building
+      - name: Build (unchecked)
+        run: cargo build --release --locked --features unchecked --target-dir target/unchecked
+      # the speculative-decode counterexample hunt (docs/journal/2026-11-22-speculative-theorem.md):
+      # every block start of 50 random streams, on both decoders
+      - name: spectest
+        run: target/release/upigz spectest 50
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # the routing checks, offline
+      - name: Coordination
+        run: |
+          python3 -m unittest discover -s .github/coordination
+          python3 .github/coordination/test_codex_route.py
+      # bench/submit.sh against a scratch origin and a stand-in for gh
+      - name: Submission tests
+        run: python3 bench/test_submit.py
+      # bench/run-queue.sh and bench/await-submit.sh (`just workstation-queue`) against a
+      # scratch origin, stand-ins for just and gh, and a scratch HOME
+      - name: The workstation queue
+        run: python3 bench/test_workstation_queue.py
+      # bench/run-queue.sh serving two scratch repositories: turns, the machine lock
+      - name: The workstation queue, several repositories
+        run: python3 bench/test_run_queue_multi.py
+      - name: The two-arm verdict
+        run: python3 bench/test_two_arm.py

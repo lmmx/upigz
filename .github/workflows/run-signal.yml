@@ -1,0 +1,70 @@
+# Sets or clears the signal tag that bench/await-submit.sh waits for on a workstation:
+#   ready/<recipe>  a lightweight tag at the exact commit to run;
+#   hold/<recipe>   stop the waiting script without running anything.
+# A tag pushed with GITHUB_TOKEN starts no other workflow.
+#
+# From the Actions tab only (it never runs on a push or a pull request). Copied from lmmx/mibz2.
+# Nothing to signal yet: upigz has no workstation recipe (.just/bench.just) and its queue is
+# empty (bench/workstation-queue.txt), so there is no gate here beyond that.
+name: Run signal
+
+on:
+  workflow_dispatch:
+    inputs:
+      signal:
+        description: "ready, hold, or clear (delete both tags)"
+        required: true
+        type: choice
+        options: [ready, hold, clear]
+      recipe:
+        description: "the recipe, e.g. bench-redecode-sweep"
+        required: true
+        type: string
+      sha:
+        description: "for ready: the full 40-character commit to run"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set the signal
+        env:
+          SIGNAL: ${{ inputs.signal }}
+          RECIPE: ${{ inputs.recipe }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$RECIPE" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "bad recipe name: $RECIPE"; exit 1; }
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          case "$SIGNAL" in
+            ready)
+              [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "ready needs a full 40-character sha"; exit 1; }
+              git cat-file -e "$SHA^{commit}" || { echo "no such commit: $SHA"; exit 1; }
+              # moves the tag when it is already set (a repeat recipe, such as each release's
+              # release scaling): the waiter runs once per commit, so the new commit runs
+              git tag -f "ready/$RECIPE" "$SHA"
+              git push -f origin "refs/tags/ready/$RECIPE"
+              ;;
+            hold)
+              git tag -f "hold/$RECIPE" HEAD
+              git push -f origin "refs/tags/hold/$RECIPE"
+              ;;
+            clear)
+              git push origin --delete "refs/tags/ready/$RECIPE" "refs/tags/hold/$RECIPE" || true
+              ;;
+          esac
+          git ls-remote --tags origin "refs/tags/ready/$RECIPE" "refs/tags/hold/$RECIPE"
+          # the signal is the tag on origin, not this run's success: check it landed
+          if [[ "$SIGNAL" == ready ]]; then
+            got=$(git ls-remote --tags origin "refs/tags/ready/$RECIPE" | awk '{print $1}')
+            [[ "$got" == "$SHA" ]] || { echo "::error::ready/$RECIPE is at '${got:-nothing}' on origin, not $SHA"; exit 1; }
+          fi
