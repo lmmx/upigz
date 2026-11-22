@@ -1,0 +1,5 @@
+cut      rapidgzip-P4           rapidgzip-P1           rapidgzip-P4-verify    gzip                   igzip                  upigz-zcat            
+0.10     exit 0 (7321669 B)     exit 0 (7321669 B)     exit 0 (7321669 B)     exit 1 (7321669 B)     exit 1 (7321669 B)     exit 101 (3494189 B)  
+0.50     exit 0 (34858746 B)    exit 0 (34858746 B)    exit 0 (34858746 B)    exit 1 (34858746 B)    exit 1 (34858746 B)    exit 101 (22065976 B) 
+0.90     exit 0 (60510947 B)    exit 0 (60510947 B)    exit 0 (60510947 B)    exit 1 (60510947 B)    exit 1 (60510947 B)    exit 101 (48757728 B) 
+0.9999   exit 0 (67093104 B)    exit 0 (67093104 B)    exit 0 (67093104 B)    exit 1 (67093104 B)    exit 1 (67093104 B)    exit 101 (48757728 B) 
