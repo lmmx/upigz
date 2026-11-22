@@ -12,7 +12,7 @@
 # bench/i9_race.py. Needs uv, gzip, igzip (ISA-L) and libisal-dev on the machine. About 15
 # minutes, most of it the first corpus build; it ends with one .tar.gz.
 #   just submit bench-i9-race
-# A DRY value is the untimed check of the recipe itself (one round), never evidence:
+# A DRY value is a check of the recipe itself (two rounds), never evidence:
 #   just bench-i9-race 1
 bench-i9-race DRY="":
     #!/usr/bin/env bash
@@ -38,8 +38,8 @@ bench-i9-race DRY="":
     fail() { outcome="REFUSED: $*"; echo "bench-i9-race: $*"; exit 1; }
     rounds=20; dry="{{DRY}}"
     if [ -n "$dry" ]; then
-      rounds=1
-      echo "bench-i9-race: DRY RUN: one round; not evidence" | tee "$W/DRY-RUN.txt"
+      rounds=2
+      echo "bench-i9-race: DRY RUN: two rounds; not evidence" | tee "$W/DRY-RUN.txt"
     fi
     # the frozen candidate (bench/i9-race.frozen): HEAD's build and workload inputs must match it
     frozen=bench/i9-race.frozen
@@ -91,7 +91,7 @@ bench-i9-race DRY="":
     set -e
     if [ "$rc" -le 1 ] && [ -s "$W/i9-race.json" ]; then
       outcome=$(python3 -c 'import json,sys; v=json.load(open(sys.argv[1])); print(v["verdict"] + ("" if v["valid"] else ": " + "; ".join(v["problems"])))' "$W/i9-race.json")
-      [ -n "$dry" ] && outcome="DRY: $outcome (one round, not evidence)"
+      [ -n "$dry" ] && outcome="DRY: $outcome (two rounds, not evidence)"
     else
       outcome="REPORT ERROR: i9_race.py exited $rc without writing its report"
     fi
