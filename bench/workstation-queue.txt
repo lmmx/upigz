@@ -13,3 +13,4 @@
 # - an entry is removed once its bundle has been read.
 #
 # recipe                       branch                    what it measures
+bench-i9-race                master                    upigz vs rapidgzip 0.16.2 (4/8/10/20 threads) and igzip, single-member Wikidata; docs/journal/2026-11-22-i9-race-registration.md

@@ -101,7 +101,7 @@ counts, and against igzip, on the single-member Wikidata file. It will settle tw
   the next lever is the 16-bit pass-1 kernel or memory traffic: the re-decode bet in the
   [research charter's frontier](https://github.com/lmmx/upigz/blob/master/docs/team/research-charter/FRONTIER.md).
 
-The recipe and its rule will be linked here once registered.
+The recipe is registered, with its rule, in [the i9 race's registration](https://github.com/lmmx/upigz/blob/master/docs/journal/2026-11-22-i9-race-registration.md): `just submit bench-i9-race`, judged by `bench/i9_race.py`. It is VALID PASS if the 95% interval of time(upigz-P10) / time(rapidgzip-P10) lies wholly below 1.00, with an A/A control inside [0.95, 1.05]. It is queued for the workstation, and its result will be posted here.
 
 ## Earlier: the first kernel and the field
 

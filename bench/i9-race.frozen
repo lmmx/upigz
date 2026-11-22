@@ -1,4 +1,4 @@
 # The i9 race's frozen candidate (docs/journal/2026-11-22-i9-race-registration.md). Set once,
 # in its own commit, when the registration freezes: the commit whose build and workload inputs
 # (bench-i9-race's `measured` list) HEAD must match.
-candidate unset
+candidate 4c5095ea3c3eee1b7087fc1294c7b4f42075ce06
