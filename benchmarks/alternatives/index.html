@@ -877,8 +877,8 @@ alternative taking longer (or more memory) than upigz at the same thread count.<
 rapidgzip run.</p>
 <p><strong>These are a runner's figures, not a ranking.</strong> The research host's and the i9's figures
 are on the <a href="../">Benchmarks</a> page; a ranking is decided on the i9-10900K.</p>
-<p>The latest record: <a href="https://github.com/lmmx/upigz/commit/2913d1e31452ff4471a8ce8ff3c0fb7b14e4d847"><code>2913d1e</code></a> (2026-11-22).</p>
-<p><strong>bench 1.0.0</strong>, 10 rounds, on AMD EPYC 7763 64-Core Processor (4 cores) · <a href="https://github.com/lmmx/upigz/actions/runs/45061665505">run</a>. Each arm decodes the whole file end to end (CRC checked), output to /dev/null; ratios are each arm's time over upigz's at the same thread count, paired by round, with a 95% interval (below 1 is faster than upigz).</p>
+<p>The latest record: <a href="https://github.com/lmmx/upigz/commit/7e092a6ea42377f0f127aa970f9f35c1b10dabfc"><code>7e092a6</code></a> (2026-11-22).</p>
+<p><strong>bench 1.0.0</strong>, 10 rounds, on AMD EPYC 7763 64-Core Processor (4 cores) · <a href="https://github.com/lmmx/upigz/actions/runs/45063025782">run</a>. Each arm decodes the whole file end to end (CRC checked), output to /dev/null; ratios are each arm's time over upigz's at the same thread count, paired by round, with a 95% interval (below 1 is faster than upigz).</p>
 <p>Versions: rustc 1.99.1, rapidgzip 0.16.2, igzip 2.31.1, libdeflate 1.23, pigz 2.8, gzip 1.14.</p>
 <h2 id="wikidata">wikidata<a class="headerlink" href="#wikidata" title="Permanent link">&para;</a></h2>
 <p>wd-256.json.gz: 40,095,641 bytes compressed, 268,385,295 decoded. wikidata-20261116-all.json.gz: the first 256 MiB, whole lines, gzip -6 -n (bench/ci_corpus.py)</p>
@@ -898,92 +898,92 @@ are on the <a href="../">Benchmarks</a> page; a ranking is decided on the i9-109
 <tr>
 <td>1</td>
 <td>upigz</td>
-<td>514</td>
-<td>0.522</td>
-<td>0.522</td>
+<td>515</td>
+<td>0.521</td>
+<td>0.521</td>
 <td>553.3</td>
 <td>1 (reference)</td>
 </tr>
 <tr>
 <td>1</td>
 <td>rapidgzip</td>
-<td>835</td>
-<td>0.321</td>
-<td>0.321</td>
+<td>833</td>
+<td>0.322</td>
+<td>0.322</td>
 <td>81.3</td>
-<td>0.613 [0.606, 0.621]</td>
+<td>0.621 [0.615, 0.627]</td>
 </tr>
 <tr>
 <td>1</td>
 <td>igzip</td>
-<td>1058</td>
-<td>0.254</td>
-<td>0.253</td>
-<td>24.6</td>
-<td>0.485 [0.479, 0.491]</td>
+<td>1052</td>
+<td>0.255</td>
+<td>0.255</td>
+<td>24.7</td>
+<td>0.491 [0.488, 0.493]</td>
 </tr>
 <tr>
 <td>1</td>
 <td>libdeflate</td>
-<td>824</td>
-<td>0.326</td>
-<td>0.326</td>
+<td>814</td>
+<td>0.330</td>
+<td>0.330</td>
 <td>295.7</td>
-<td>0.622 [0.615, 0.629]</td>
+<td>0.634 [0.630, 0.637]</td>
 </tr>
 <tr>
 <td>1</td>
 <td>pigz</td>
-<td>524</td>
-<td>0.512</td>
-<td>0.706</td>
-<td>24.6</td>
-<td>0.974 [0.956, 0.992]</td>
+<td>522</td>
+<td>0.514</td>
+<td>0.708</td>
+<td>24.7</td>
+<td>0.992 [0.977, 1.007]</td>
 </tr>
 <tr>
 <td>1</td>
 <td>gzip</td>
-<td>577</td>
-<td>0.465</td>
-<td>0.465</td>
-<td>24.6</td>
-<td>0.888 [0.878, 0.898]</td>
+<td>576</td>
+<td>0.466</td>
+<td>0.466</td>
+<td>24.7</td>
+<td>0.897 [0.893, 0.902]</td>
 </tr>
 <tr>
 <td>2</td>
 <td>upigz</td>
-<td>771</td>
-<td>0.348</td>
-<td>0.648</td>
-<td>196.0</td>
+<td>778</td>
+<td>0.345</td>
+<td>0.644</td>
+<td>189.4</td>
 <td>1 (reference)</td>
 </tr>
 <tr>
 <td>2</td>
 <td>rapidgzip</td>
-<td>612</td>
-<td>0.438</td>
+<td>614</td>
+<td>0.437</td>
 <td>0.834</td>
-<td>191.0</td>
-<td>1.291 [1.232, 1.353]</td>
+<td>178.4</td>
+<td>1.270 [1.256, 1.283]</td>
 </tr>
 <tr>
 <td>4</td>
 <td>upigz</td>
-<td>882</td>
-<td>0.304</td>
-<td>1.033</td>
-<td>261.0</td>
+<td>879</td>
+<td>0.305</td>
+<td>1.036</td>
+<td>261.4</td>
 <td>1 (reference)</td>
 </tr>
 <tr>
 <td>4</td>
 <td>rapidgzip</td>
-<td>699</td>
-<td>0.384</td>
-<td>1.248</td>
-<td>342.5</td>
-<td>1.254 [1.237, 1.271]</td>
+<td>702</td>
+<td>0.382</td>
+<td>1.249</td>
+<td>334.2</td>
+<td>1.235 [1.173, 1.300]</td>
 </tr>
 </tbody>
 </table>

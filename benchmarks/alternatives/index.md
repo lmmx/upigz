@@ -16,9 +16,9 @@ upigz beside other gzip decoders on master's latest recorded commit, decoded in 
 
 **These are a runner's figures, not a ranking.** The research host's and the i9's figures are on the [Benchmarks](<https://lmmx.github.io/upigz/benchmarks/index.md>) page; a ranking is decided on the i9-10900K.
 
-The latest record: [`2913d1e`](<https://github.com/lmmx/upigz/commit/2913d1e31452ff4471a8ce8ff3c0fb7b14e4d847>) (2026-11-22).
+The latest record: [`7e092a6`](<https://github.com/lmmx/upigz/commit/7e092a6ea42377f0f127aa970f9f35c1b10dabfc>) (2026-11-22).
 
-**bench 1.0.0**, 10 rounds, on AMD EPYC 7763 64-Core Processor (4 cores) · [run](<https://github.com/lmmx/upigz/actions/runs/45061665505>). Each arm decodes the whole file end to end (CRC checked), output to /dev/null; ratios are each arm's time over upigz's at the same thread count, paired by round, with a 95% interval (below 1 is faster than upigz).
+**bench 1.0.0**, 10 rounds, on AMD EPYC 7763 64-Core Processor (4 cores) · [run](<https://github.com/lmmx/upigz/actions/runs/45063025782>). Each arm decodes the whole file end to end (CRC checked), output to /dev/null; ratios are each arm's time over upigz's at the same thread count, paired by round, with a 95% interval (below 1 is faster than upigz).
 
 Versions: rustc 1.99.1, rapidgzip 0.16.2, igzip 2.31.1, libdeflate 1.23, pigz 2.8, gzip 1.14.
 
@@ -28,13 +28,13 @@ wd-256.json.gz: 40,095,641 bytes compressed, 268,385,295 decoded. wikidata-20261
 
 | threads | arm | MB/s | wall s | CPU s | peak RSS MB | wall vs upigz |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | upigz | 514 | 0.522 | 0.522 | 553.3 | 1 (reference) |
-| 1 | rapidgzip | 835 | 0.321 | 0.321 | 81.3 | 0.613 \[0.606, 0.621\] |
-| 1 | igzip | 1058 | 0.254 | 0.253 | 24.6 | 0.485 \[0.479, 0.491\] |
-| 1 | libdeflate | 824 | 0.326 | 0.326 | 295.7 | 0.622 \[0.615, 0.629\] |
-| 1 | pigz | 524 | 0.512 | 0.706 | 24.6 | 0.974 \[0.956, 0.992\] |
-| 1 | gzip | 577 | 0.465 | 0.465 | 24.6 | 0.888 \[0.878, 0.898\] |
-| 2 | upigz | 771 | 0.348 | 0.648 | 196.0 | 1 (reference) |
-| 2 | rapidgzip | 612 | 0.438 | 0.834 | 191.0 | 1.291 \[1.232, 1.353\] |
-| 4 | upigz | 882 | 0.304 | 1.033 | 261.0 | 1 (reference) |
-| 4 | rapidgzip | 699 | 0.384 | 1.248 | 342.5 | 1.254 \[1.237, 1.271\] |
+| 1 | upigz | 515 | 0.521 | 0.521 | 553.3 | 1 (reference) |
+| 1 | rapidgzip | 833 | 0.322 | 0.322 | 81.3 | 0.621 \[0.615, 0.627\] |
+| 1 | igzip | 1052 | 0.255 | 0.255 | 24.7 | 0.491 \[0.488, 0.493\] |
+| 1 | libdeflate | 814 | 0.330 | 0.330 | 295.7 | 0.634 \[0.630, 0.637\] |
+| 1 | pigz | 522 | 0.514 | 0.708 | 24.7 | 0.992 \[0.977, 1.007\] |
+| 1 | gzip | 576 | 0.466 | 0.466 | 24.7 | 0.897 \[0.893, 0.902\] |
+| 2 | upigz | 778 | 0.345 | 0.644 | 189.4 | 1 (reference) |
+| 2 | rapidgzip | 614 | 0.437 | 0.834 | 178.4 | 1.270 \[1.256, 1.283\] |
+| 4 | upigz | 879 | 0.305 | 1.036 | 261.4 | 1 (reference) |
+| 4 | rapidgzip | 702 | 0.382 | 1.249 | 334.2 | 1.235 \[1.173, 1.300\] |
