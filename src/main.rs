@@ -7,6 +7,7 @@
 //! a preallocated buffer; no arm checks CRCs. Each round runs every arm once, in a shuffled
 //! order, and prints one line per arm: `round arm ns bytes`.
 
+mod fast;
 mod inflate;
 
 use inflate::{decode_group, Stream, IN_PAD, SLACK};
@@ -140,6 +141,7 @@ impl Zrs {
 
 enum Arm {
     Ours { k: usize, b: usize, rolled: bool },
+    Fast(fast::Decoder),
     Libdeflate(libdeflater::Decompressor),
     LibdeflateThreads(usize),
     ZlibNg(Zng),
@@ -162,6 +164,7 @@ fn arm(name: &str) -> Arm {
         return Arm::LibdeflateThreads(t.parse().unwrap());
     }
     match base {
+        "fast" => Arm::Fast(fast::Decoder::default()),
         "libdeflate" => Arm::Libdeflate(libdeflater::Decompressor::new()),
         "zlib-ng" => Arm::ZlibNg(Zng::new()),
         "zlib-rs" => Arm::ZlibRs(Zrs::new()),
@@ -196,6 +199,13 @@ fn run(a: &mut Arm, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
             8 => ours::<8>(*k, *rolled, inp, ms, outs),
             _ => panic!("batch must be 1, 2, 4 or 8"),
         },
+        Arm::Fast(d) => {
+            for (m, o) in ms.iter().zip(outs) {
+                let (n, end) = d.decode(inp, m.body, &mut o[..], m.raw).unwrap();
+                assert_eq!(n, m.raw);
+                assert_eq!(end + 8, m.end, "member end vs trailer");
+            }
+        }
         Arm::Libdeflate(d) => {
             for (m, o) in ms.iter().zip(outs) {
                 let n = d.deflate_decompress(&inp[m.body..m.end - 8], &mut o[..m.raw]).unwrap();

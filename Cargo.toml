@@ -13,6 +13,8 @@ miniz_oxide = "0"
 [features]
 # Counts symbols, matches and copy shapes (one thread, step() instrumented); never timed
 census = []
+# Research only: the fast loop's accesses unchecked (safety argument in src/fast.rs)
+unchecked = []
 
 [profile.release]
 codegen-units = 1
