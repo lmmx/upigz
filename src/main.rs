@@ -293,6 +293,20 @@ fn main() {
             sy as f64 / (l + mb) as f64, l as f64 / sy as f64, mb as f64 / m as f64, mb as f64 / (l + mb) as f64,
             get(&DIST_LT8) as f64 / m as f64, get(&DIST1) as f64 / m as f64, h.join(",")
         );
+        if names.contains(&"fast") {
+            use fast::prof;
+            let t = std::time::Instant::now();
+            run(&mut arms.iter_mut().find(|a| a.0 == "fast").unwrap().1, &inp, &ms, &mut outs);
+            let all = t.elapsed().as_nanos() as f64;
+            // the validation pass above also ran: halve the counters' two passes
+            println!(
+                "prof {path}: dynamic blocks {} (per pass), header+build {:.2}% of decode, build alone {:.2}%, {:.0} raw bytes per block",
+                prof::get(&prof::BLOCKS) / 2,
+                prof::get(&prof::HEADER_NS) as f64 / 2.0 / all * 100.0 * 2.0 / 2.0,
+                prof::get(&prof::BUILD_NS) as f64 / 2.0 / all * 100.0,
+                total as f64 / (prof::get(&prof::BLOCKS) / 2) as f64
+            );
+        }
         return;
     }
 

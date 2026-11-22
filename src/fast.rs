@@ -119,7 +119,7 @@ fn dist_entry(sym: usize, l: u32) -> u32 {
 
 /// Canonical Huffman table with `bits` main bits. Subtable entries consume only the bits past
 /// the main index (the pointer entry consumes the main bits first).
-fn build(table: &mut [u32], lens: &[u8], bits: u32, entry: fn(usize, u32) -> u32) -> Result<(), Err> {
+fn build_slow<F: Fn(usize, u32) -> u32>(table: &mut [u32], lens: &[u8], bits: u32, entry: F) -> Result<(), Err> {
     let mut count = [0u16; 16];
     for &l in lens {
         count[l as usize] += 1;
@@ -191,6 +191,140 @@ fn build(table: &mut [u32], lens: &[u8], bits: u32, entry: fn(usize, u32) -> u32
         }
     }
     Ok(())
+}
+
+/// Build a decode table: libdeflate's method for complete codes (codewords of each length
+/// written into the first 2^len slots in bit-reversed canonical order, then the table doubled
+/// by contiguous copies; no clearing, since a complete code covers every slot), and the
+/// clearing builder for incomplete codes.
+#[inline(always)]
+fn build<F: Fn(usize, u32) -> u32 + Copy>(table: &mut [u32], lens: &[u8], bits: u32, entry: F) -> Result<(), Err> {
+    let mut count = [0u16; 16];
+    for &l in lens {
+        count[l as usize] += 1;
+    }
+    count[0] = 0;
+    let mut left: i32 = 1;
+    for c in &count[1..] {
+        left = (left << 1) - *c as i32;
+        if left < 0 {
+            return Err("over-subscribed code");
+        }
+    }
+    if left != 0 {
+        return build_slow(table, lens, bits, entry);
+    }
+    // canonical order: by length, then symbol
+    let mut offs = [0u16; 16];
+    for l in 1..15 {
+        offs[l + 1] = offs[l] + count[l];
+    }
+    let mut sorted = [0u16; 288];
+    for (sym, &l) in lens.iter().enumerate() {
+        if l != 0 {
+            sorted[offs[l as usize] as usize] = sym as u16;
+            offs[l as usize] += 1;
+        }
+    }
+    let main = 1usize << bits;
+    let mut len = 1usize;
+    while count[len] == 0 {
+        len += 1;
+    }
+    if len as u32 > bits {
+        return build_slow(table, lens, bits, entry);
+    }
+    let mut cur_end = 1usize << len;
+    let mut cw = 0usize; // bit-reversed codeword, `len` bits
+    let mut i = 0usize;
+    loop {
+        for _ in 0..count[len] {
+            table[cw] = entry(sorted[i] as usize, len as u32);
+            i += 1;
+            if cw == cur_end - 1 {
+                // the last codeword: the code is complete at this length
+                while cur_end < main {
+                    table.copy_within(0..cur_end, cur_end);
+                    cur_end <<= 1;
+                }
+                return Ok(());
+            }
+            let bit = 1usize << (usize::BITS - 1 - (cw ^ (cur_end - 1)).leading_zeros());
+            cw &= bit - 1;
+            cw |= bit;
+        }
+        len += 1;
+        if len as u32 > bits {
+            break;
+        }
+        table.copy_within(0..cur_end, cur_end);
+        cur_end <<= 1;
+    }
+    // codes longer than `bits`: subtables, in canonical order (codes sharing a main-table
+    // prefix are contiguous)
+    let mut cnt = count;
+    let mut cur_end_l = 1usize << len; // codeword space at the current length
+    let mut prefix = usize::MAX;
+    let mut sub_start = 0usize;
+    let mut sub_bits = 0u32;
+    let mut next_sub = main;
+    loop {
+        while cnt[len] == 0 {
+            len += 1;
+            cur_end_l <<= 1;
+            if len > 15 {
+                return Err("bad code");
+            }
+        }
+        let p = cw & (main - 1);
+        if p != prefix {
+            prefix = p;
+            sub_start = next_sub;
+            sub_bits = len as u32 - bits;
+            let mut used = cnt[len] as u32;
+            while used < (1 << sub_bits) {
+                sub_bits += 1;
+                if bits + sub_bits > 15 {
+                    return Err("bad code");
+                }
+                used = (used << 1) + cnt[(bits + sub_bits) as usize] as u32;
+            }
+            next_sub = sub_start + (1 << sub_bits);
+            if next_sub > table.len() {
+                return Err("table overflow");
+            }
+            table[p] = EXC | SUB | ((sub_start as u32) << 16) | (sub_bits << 8) | bits;
+        }
+        let e = entry(sorted[i] as usize, len as u32 - bits);
+        i += 1;
+        cnt[len] -= 1;
+        let stride = 1usize << (len as u32 - bits);
+        let mut j = cw >> bits;
+        while j < (1 << sub_bits) {
+            table[sub_start + j] = e;
+            j += stride;
+        }
+        if cw == cur_end_l - 1 {
+            return Ok(());
+        }
+        let bit = 1usize << (usize::BITS - 1 - (cw ^ (cur_end_l - 1)).leading_zeros());
+        cw &= bit - 1;
+        cw |= bit;
+    }
+}
+
+#[cfg(feature = "census")]
+pub mod prof {
+    use core::sync::atomic::{AtomicU64, Ordering::Relaxed};
+    pub static BLOCKS: AtomicU64 = AtomicU64::new(0);
+    pub static BUILD_NS: AtomicU64 = AtomicU64::new(0);
+    pub static HEADER_NS: AtomicU64 = AtomicU64::new(0);
+    pub fn add(c: &AtomicU64, n: u64) {
+        c.fetch_add(n, Relaxed);
+    }
+    pub fn get(c: &AtomicU64) -> u64 {
+        c.load(Relaxed)
+    }
 }
 
 pub struct Decoder {
@@ -296,7 +430,14 @@ impl Decoder {
                     o = self.body(&mut b, out, o, limit)?;
                 }
                 2 => {
+                    #[cfg(feature = "census")]
+                    let t0 = std::time::Instant::now();
                     self.dynamic_header(&mut b)?;
+                    #[cfg(feature = "census")]
+                    {
+                        prof::add(&prof::HEADER_NS, t0.elapsed().as_nanos() as u64);
+                        prof::add(&prof::BLOCKS, 1);
+                    }
                     o = self.body(&mut b, out, o, limit)?;
                 }
                 _ => return Err("invalid block type"),
@@ -320,41 +461,68 @@ impl Decoder {
         // precode: 7-bit direct table, entry = len | sym << 16
         let mut pt = [INVALID; 128];
         build(&mut pt, &pl, 7, |s, l| ((s as u32) << 16) | l)?;
-        let mut l = [0u8; 320];
+        // Code lengths: one refill serves 4 precode symbols (<= 7 + 7 bits each); repeats are
+        // written as fixed-width chunks into slack past the end, then bounds are checked.
+        let total = hlit + hdist;
+        let mut l = [0u8; 320 + 160];
         let mut i = 0;
-        while i < hlit + hdist {
-            if b.bc < 16 {
+        'lens: while i < total {
+            if b.bc < 56 {
                 b.refill()?;
             }
-            let e = pt[(b.bb & 127) as usize];
-            if e & EXC != 0 {
-                return Err("invalid precode");
-            }
-            b.bb >>= e & 0xff;
-            b.bc -= e & 0xff;
-            let s = (e >> 16) as usize;
-            let (v, n) = match s {
-                0..=15 => (s as u8, 1),
-                16 => {
+            for _ in 0..4 {
+                let e = pt[(b.bb & 127) as usize];
+                if e & EXC != 0 {
+                    return Err("invalid precode");
+                }
+                let sl = e & 0xff;
+                b.bb >>= sl;
+                b.bc -= sl;
+                let sym = e >> 16;
+                if sym < 16 {
+                    l[i] = sym as u8;
+                    i += 1;
+                } else if sym == 16 {
                     if i == 0 {
                         return Err("repeat with no previous length");
                     }
-                    (l[i - 1], 3 + b.take(2)? as usize)
+                    let n = 3 + (b.bb & 3) as usize;
+                    b.bb >>= 2;
+                    b.bc -= 2;
+                    let v = l[i - 1];
+                    l[i..i + 8].copy_from_slice(&[v; 8]);
+                    i += n;
+                } else if sym == 17 {
+                    let n = 3 + (b.bb & 7) as usize;
+                    b.bb >>= 3;
+                    b.bc -= 3;
+                    l[i..i + 16].copy_from_slice(&[0; 16]);
+                    i += n;
+                } else {
+                    let n = 11 + (b.bb & 127) as usize;
+                    b.bb >>= 7;
+                    b.bc -= 7;
+                    l[i..i + 138].fill(0);
+                    i += n;
                 }
-                17 => (0, 3 + b.take(3)? as usize),
-                _ => (0, 11 + b.take(7)? as usize),
-            };
-            if i + n > hlit + hdist {
-                return Err("code lengths overflow");
+                if i >= total {
+                    break 'lens;
+                }
             }
-            l[i..i + n].fill(v);
-            i += n;
+        }
+        if i > total {
+            return Err("code lengths overflow");
         }
         if l[256] == 0 {
             return Err("no end-of-block code");
         }
+        #[cfg(feature = "census")]
+        let t0 = std::time::Instant::now();
         build(&mut self.lit[..], &l[..hlit], LB, lit_entry)?;
-        build(&mut self.dist[..], &l[hlit..hlit + hdist], DB, dist_entry)
+        build(&mut self.dist[..], &l[hlit..total], DB, dist_entry)?;
+        #[cfg(feature = "census")]
+        prof::add(&prof::BUILD_NS, t0.elapsed().as_nanos() as u64);
+        Ok(())
     }
 
     /// One block body: the fast loop while margins hold, then the checked loop.
