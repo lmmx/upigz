@@ -1,0 +1,3 @@
+[build]
+# The i9-10900K target: AVX2 + BMI2, no AVX-512
+rustflags = ["-C", "target-cpu=x86-64-v3"]
