@@ -1,0 +1,51 @@
+# upigz is a Rust crate with no Python package (yet). This file holds the Python tooling's
+# configuration only: the coordination scripts, the bench helpers and the docs site's scripts.
+# It is a virtual project (`uv sync --no-install-project`): nothing here is built or installed.
+
+[project]
+authors = [{ email = "louismmx@gmail.com", name = "Louis Maddox" }]
+dependencies = []
+description = "Fast parallel gzip/DEFLATE decompression in Rust (the repository's Python tooling)"
+license = "MIT"
+name = "upigz-tooling"
+requires-python = ">=3.10"
+version = "0.0.0"
+
+[project.urls]
+Documentation = "https://lmmx.github.io/upigz/"
+Homepage = "https://github.com/lmmx/upigz"
+Issues = "https://github.com/lmmx/upigz/issues"
+Repository = "https://github.com/lmmx/upigz.git"
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = ["pdbpp>=0.11.7"]
+test = ["pytest>=8.4.1"]
+typing = ["ty>=0.0.89"]
+
+[tool.pytest.ini_options]
+testpaths = [".github/coordination", "bench"]
+
+[tool.ty.src]
+include = [".github/coordination", "bench", "docs/scripts"]
+
+[tool.ruff]
+line-length = 100
+# research/ holds research agents' scratch code and evidence: not linted, so lint never gates
+# a research recipe; anything promoted out of it is linted as usual. scripts/ and runs/ are the
+# research host's journal harnesses, kept as they were run.
+extend-exclude = ["research", "scripts", "runs"]
+
+[tool.ruff.lint]
+ignore = ["D401"]
+select = ["D"]
+
+[tool.ruff.lint.per-file-ignores]
+".github/coordination/*" = ["D"]
+"bench/*" = ["D"]
+"docs/*" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

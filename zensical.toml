@@ -1,0 +1,130 @@
+[project]
+copyright = "upigz is licensed under MIT"
+docs_dir = "docs/site"
+edit_uri = "edit/master/docs/site/"
+extra_css = [
+  "assets/stylesheets/extra.css?v=dev",
+  "assets/stylesheets/blog.css?v=dev",
+]
+nav = [
+  { "Home" = "index.md" },
+  { "Get started" = "getting-started/index.md" },
+  { "Benchmarks" = "benchmarks/index.md" },
+  { "Journals" = [
+    "journal/index.md",
+    { "Interleaving within a thread" = "journal/interleaved-inflate.md" },
+    { "The kernel and the first parallel win" = "journal/kernel-and-parallel.md" },
+    { "The speculative-decode theorem" = "journal/speculative-theorem.md" },
+  ] },
+  { "Blog" = [
+    "blog/index.md",
+  ] },
+]
+repo_name = "lmmx/upigz"
+repo_url = "https://github.com/lmmx/upigz"
+site_author = "Louis Maddox"
+site_description = "A fast parallel gzip/DEFLATE decoder in Rust, built for the single-member file."
+site_name = "upigz"
+site_url = "https://lmmx.github.io/upigz/"
+
+[project.markdown_extensions.abbr]
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.def_list]
+[project.markdown_extensions.footnotes]
+[project.markdown_extensions.md_in_html]
+[project.markdown_extensions.tables]
+[project.markdown_extensions.toc]
+permalink = true
+# maths: $...$ inline, $$...$$ displayed, rendered by KaTeX (assets/javascripts/katex.js)
+[project.markdown_extensions.pymdownx.arithmatex]
+generic = true
+[project.markdown_extensions.pymdownx.details]
+[project.markdown_extensions.pymdownx.highlight]
+pygments_lang_class = true
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.keys]
+# (docs/generated/: the benchmark pages' tables, written by docs/scripts/bench_history.py
+# before each build)
+[project.markdown_extensions.pymdownx.snippets]
+check_paths = true
+[project.markdown_extensions.pymdownx.superfences]
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+[project.plugins.search]
+
+[project.theme]
+features = [
+  "content.action.copy",
+  "content.action.edit",
+  "content.code.copy",
+  "content.tabs.link",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.top",
+  "search.highlight",
+  "search.suggest",
+  "toc.follow",
+]
+font.code = "IBM Plex Mono"
+font.text = "IBM Plex Sans"
+language = "en"
+# the home page's illustration without its shadows (docs/scripts/hero.py mark), as PNG
+variant = "modern"
+custom_dir = "docs/overrides"
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[[project.theme.palette]]
+accent = "custom"
+media = "(prefers-color-scheme: light)"
+primary = "custom"
+scheme = "default"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+accent = "custom"
+media = "(prefers-color-scheme: dark)"
+primary = "custom"
+scheme = "slate"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to light mode"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/lmmx/upigz"
+name = "upigz on GitHub"
+
+# llms.txt, llms-full.txt and a Markdown copy of each page listed here (<page>/index.md).
+# Every nav page is listed once, with its front-matter description (check_site.py).
+[project.plugins.llmstxt]
+full_output = "llms-full.txt"
+markdown_description = """
+upigz is a parallel gzip/DEFLATE decoder in Rust, built for large single-member files: it
+decodes chunks speculatively, before their 32 KiB history is known, then resolves them. It is
+a research prototype. Each link below is the Markdown version of a page of
+https://lmmx.github.io/upigz/.
+"""
+
+[project.plugins.llmstxt.sections]
+"Start here" = [
+  { "index.md" = "A fast parallel gzip/DEFLATE decoder in Rust, built for the single-member file." },
+  { "getting-started/index.md" = "Building upigz from source and running its parallel zcat, and what the prototype doesn't do yet." },
+]
+"Benchmarks" = [
+  { "benchmarks/index.md" = "upigz's figures so far, from the research host: the parallel single-member decoder against rapidgzip and igzip, and the single-thread kernel against libdeflate." },
+]
+"Journals" = [
+  { "journal/index.md" = "upigz's research journals: where they are, and what each one records." },
+  { "journal/interleaved-inflate.md" = "Interleaving K members in one thread doesn't speed up gzip decoding on real data; the parallelism that pays is across cores." },
+  { "journal/kernel-and-parallel.md" = "The single-thread kernel within 4–12% of libdeflate, and a streaming parallel single-member decoder ahead of rapidgzip -P4 on a 4-core host." },
+  { "journal/speculative-theorem.md" = "The speculative-decode theorem stated precisely, checked by a counterexample hunt, and a plan for proving it in Lean." },
+]
+"Blog" = [
+  { "blog/index.md" = "What upigz's experiments are finding, and where they go next." },
+]

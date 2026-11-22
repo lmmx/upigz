@@ -2,7 +2,7 @@
 usage: race.py <rounds> <file.gz> <raw-bytes>"""
 import random, subprocess, sys, time
 rounds, f, raw = int(sys.argv[1]), sys.argv[2], int(sys.argv[3])
-U = 'target/unchecked/release/inflate-ilp zcat {f} {p} {c}'
+U = 'target/unchecked/release/upigz zcat {f} {p} {c}'
 ARMS = {
     'igzip-1t':            'taskset -c 2 igzip -dc {f}',
     'rapidgzip-P4':        'taskset -c 0-3 rapidgzip -P 4 -dc {f}',

@@ -4,8 +4,8 @@ import random, subprocess, sys, time
 rounds, f, raw = int(sys.argv[1]), sys.argv[2], int(sys.argv[3])
 ARMS = {
     'rapidgzip-P4':     'taskset -c 0-3 rapidgzip -P 4 -dc {f}',
-    'upigz-P4-safe':    'taskset -c 0-3 target/release/inflate-ilp zcat {f} 4 1024',
-    'upigz-P4-unchecked': 'taskset -c 0-3 target/unchecked/release/inflate-ilp zcat {f} 4 1024',
+    'upigz-P4-safe':    'taskset -c 0-3 target/release/upigz zcat {f} 4 1024',
+    'upigz-P4-unchecked': 'taskset -c 0-3 target/unchecked/release/upigz zcat {f} 4 1024',
 }
 rng = random.Random(4); names = list(ARMS)
 for r in range(rounds + 1):

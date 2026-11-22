@@ -1,0 +1,8 @@
+# The one Rust toolchain for CI, workstation runs and the research host. The compiler moves a
+# decoder's figures more than many of the effects being gated, so it is pinned, and bumping it
+# is its own pull request with a benchmark run. The workflows that install Rust name the same
+# version, which test.yml checks. (Inherited from lmmx/mibz2, whose pin this is.)
+[toolchain]
+channel = "1.99.1"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

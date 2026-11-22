@@ -1,0 +1,15 @@
+# repo: lmmx/upigz
+# channel: 2
+#
+# The two lines above say where this repository's runs report. bench/submit.sh and
+# bench/await-submit.sh read them, so that those scripts name no repository: keep them. The
+# channel is the team's channel PR, #2.
+#
+# The workstation queue: frozen recipes ready to run on the workstation, in run order.
+# `just workstation-queue` runs every entry whose ready/<recipe> tag is set, once each,
+# then suspends. The coordinator maintains this file (docs/team/PROTOCOL.md §9):
+# - an entry is added only when its run needs no further decision: the recipe frozen,
+#   reviewed and green, and its ready tag set at the exact commit to run;
+# - an entry is removed once its bundle has been read.
+#
+# recipe                       branch                    what it measures

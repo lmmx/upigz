@@ -1,2 +1,21 @@
 target/
 corpus/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+*.egg-info
+.ruff_cache/
+.pytest_cache/
+.cache/
+.venv
+
+*.swp
+*.so
+
+# Documentation site build output, and look_pages.py's screenshots of it
+/site/
+/site-shots/
+/docs/generated/
