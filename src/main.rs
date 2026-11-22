@@ -10,8 +10,8 @@
 mod fast;
 mod fast_base;
 mod inflate;
-mod spec;
 mod par;
+mod spec;
 
 use inflate::{decode_group, Stream, IN_PAD, SLACK};
 use std::time::Instant;
@@ -24,7 +24,10 @@ struct Member {
 }
 
 fn gz_body(f: &[u8], at: usize) -> usize {
-    assert!(f[at] == 0x1f && f[at + 1] == 0x8b && f[at + 2] == 8, "not gzip at {at}");
+    assert!(
+        f[at] == 0x1f && f[at + 1] == 0x8b && f[at + 2] == 8,
+        "not gzip at {at}"
+    );
     let flg = f[at + 3];
     let mut p = at + 10;
     if flg & 4 != 0 {
@@ -52,13 +55,23 @@ fn members(path: &str, f: &[u8]) -> Vec<Member> {
         Ok(idx) => {
             for l in idx.lines() {
                 let n: Vec<usize> = l.split(' ').map(|x| x.parse().unwrap()).collect();
-                v.push(Member { body: gz_body(f, n[0]), end: n[0] + n[1], raw: n[2], out_off });
+                v.push(Member {
+                    body: gz_body(f, n[0]),
+                    end: n[0] + n[1],
+                    raw: n[2],
+                    out_off,
+                });
                 out_off += n[2];
             }
         }
         Err(_) => {
             let raw = u32::from_le_bytes(f[f.len() - 4..].try_into().unwrap()) as usize;
-            v.push(Member { body: gz_body(f, 0), end: f.len(), raw, out_off });
+            v.push(Member {
+                body: gz_body(f, 0),
+                end: f.len(),
+                raw,
+                out_off,
+            });
         }
     }
     v
@@ -142,12 +155,26 @@ impl Zrs {
 
 extern "C" {
     fn isal_shim_new() -> *mut core::ffi::c_void;
-    fn isal_shim_raw(s: *mut core::ffi::c_void, inp: *const u8, in_len: u32, out: *mut u8, out_len: u32) -> i64;
+    fn isal_shim_raw(
+        s: *mut core::ffi::c_void,
+        inp: *const u8,
+        in_len: u32,
+        out: *mut u8,
+        out_len: u32,
+    ) -> i64;
 }
 struct Isal(*mut core::ffi::c_void);
 impl Isal {
     fn decode(&mut self, inp: &[u8], out: &mut [u8]) -> usize {
-        let n = unsafe { isal_shim_raw(self.0, inp.as_ptr(), inp.len() as u32, out.as_mut_ptr(), out.len() as u32) };
+        let n = unsafe {
+            isal_shim_raw(
+                self.0,
+                inp.as_ptr(),
+                inp.len() as u32,
+                out.as_mut_ptr(),
+                out.len() as u32,
+            )
+        };
         assert!(n >= 0, "isa-l failed");
         n as usize
     }
@@ -235,7 +262,9 @@ fn run(a: &mut Arm, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
         }
         Arm::Libdeflate(d) => {
             for (m, o) in ms.iter().zip(outs) {
-                let n = d.deflate_decompress(&inp[m.body..m.end - 8], &mut o[..m.raw]).unwrap();
+                let n = d
+                    .deflate_decompress(&inp[m.body..m.end - 8], &mut o[..m.raw])
+                    .unwrap();
                 assert_eq!(n, m.raw);
             }
         }
@@ -251,7 +280,9 @@ fn run(a: &mut Arm, inp: &[u8], ms: &[Member], outs: &mut [Vec<u8>]) {
                     sc.spawn(move || {
                         let mut d = libdeflater::Decompressor::new();
                         for (m, o) in lane {
-                            let n = d.deflate_decompress(&inp[m.body..m.end - 8], &mut o[..m.raw]).unwrap();
+                            let n = d
+                                .deflate_decompress(&inp[m.body..m.end - 8], &mut o[..m.raw])
+                                .unwrap();
                             assert_eq!(n, m.raw);
                         }
                     });
@@ -306,10 +337,26 @@ fn markers(a: &[String]) {
     assert!(full.finished);
     let dec = &full.out[spec::WINDOW..];
     assert_eq!(dec.len(), reference.len());
-    assert!(dec.iter().zip(&reference).all(|(&x, &y)| x == y as u16), "sequential decode differs");
+    assert!(
+        dec.iter().zip(&reference).all(|(&x, &y)| x == y as u16),
+        "sequential decode differs"
+    );
     let nb = full.blocks.len();
-    println!("{path}: {nb} blocks, sequential decode byte-exact; sampling {samples} starts, span {span}");
-    println!("{:>6} {:>9} {:>10} {:>9} {:>14} {:>10} {:>11} {:>12} {:>13}", "block", "out MiB", "decoded", "markers%", "last marker KiB", "win refs", "clean@ KiB", "mean run B", "marker-match%");
+    println!(
+        "{path}: {nb} blocks, sequential decode byte-exact; sampling {samples} starts, span {span}"
+    );
+    println!(
+        "{:>6} {:>9} {:>10} {:>9} {:>14} {:>10} {:>11} {:>12} {:>13}",
+        "block",
+        "out MiB",
+        "decoded",
+        "markers%",
+        "last marker KiB",
+        "win refs",
+        "clean@ KiB",
+        "mean run B",
+        "marker-match%"
+    );
     let mut lasts = Vec::new();
     for k in 1..=samples {
         let bi = k * (nb - 1) / (samples + 1);
@@ -322,7 +369,11 @@ fn markers(a: &[String]) {
                 assert_eq!(v, want as u16, "literal mismatch at block {bi} +{i}");
             } else {
                 let w = (v - 256) as usize;
-                assert_eq!(reference[outpos - spec::WINDOW + w], want, "marker resolves wrong at block {bi} +{i}");
+                assert_eq!(
+                    reference[outpos - spec::WINDOW + w],
+                    want,
+                    "marker resolves wrong at block {bi} +{i}"
+                );
             }
         }
         let c = spec::census(&r);
@@ -367,11 +418,18 @@ fn par_mode(a: &[String]) {
         let st = par::decompress(&inp, body, body_end, t, chunk, &mut pool).unwrap();
         let mut off = 0;
         for (k, c) in pool.iter().enumerate() {
-            assert!(c.bytes[..c.len] == reference[off..off + c.len], "par t={t}: chunk {k} differs");
+            assert!(
+                c.bytes[..c.len] == reference[off..off + c.len],
+                "par t={t}: chunk {k} differs"
+            );
             off += c.len;
         }
         assert_eq!(off, reference.len());
-        eprintln!("par t={t}: {} chunks, byte-exact, markers {:.1}% of output", st.chunks, 100.0 * st.marker_frac);
+        eprintln!(
+            "par t={t}: {} chunks, byte-exact, markers {:.1}% of output",
+            st.chunks,
+            100.0 * st.marker_frac
+        );
     }
     let mut single = vec![0u8; reference.len() + SLACK];
     let mut fd = fast::Decoder::default();
@@ -390,11 +448,13 @@ fn par_mode(a: &[String]) {
         for nm in &names {
             let t0 = Instant::now();
             if let Some(t) = nm.strip_prefix("par-t") {
-                par::decompress(&inp, body, body_end, t.parse().unwrap(), chunk, &mut pool).unwrap();
+                par::decompress(&inp, body, body_end, t.parse().unwrap(), chunk, &mut pool)
+                    .unwrap();
             } else if nm == "fast" {
                 fd.decode(&inp, body, &mut single, reference.len()).unwrap();
             } else {
-                ld.deflate_decompress(&inp[body..body_end], &mut single[..reference.len()]).unwrap();
+                ld.deflate_decompress(&inp[body..body_end], &mut single[..reference.len()])
+                    .unwrap();
             }
             println!("{r} {nm} {} {}", t0.elapsed().as_nanos(), reference.len());
         }
@@ -420,7 +480,8 @@ fn cat_mode(a: &[String]) {
     par::decompress(&inp, body, body_end, threads, chunk, &mut pool).unwrap();
     // CRC per chunk in parallel, then combined in order
     let next = std::sync::atomic::AtomicUsize::new(0);
-    let crcs: Vec<std::sync::Mutex<Option<crc32fast::Hasher>>> = pool.iter().map(|_| std::sync::Mutex::new(None)).collect();
+    let crcs: Vec<std::sync::Mutex<Option<crc32fast::Hasher>>> =
+        pool.iter().map(|_| std::sync::Mutex::new(None)).collect();
     std::thread::scope(|sc| {
         for _ in 0..threads {
             sc.spawn(|| loop {
@@ -462,7 +523,16 @@ fn zcat_mode(a: &[String]) {
     let want_crc = u32::from_le_bytes(inp[flen - 8..flen - 4].try_into().unwrap());
     let want_len = u32::from_le_bytes(inp[flen - 4..flen].try_into().unwrap());
     let out = std::io::stdout().lock();
-    let st = par::stream(&inp, body, flen - 8, threads, chunk, cap, std::io::BufWriter::with_capacity(1 << 20, out)).unwrap();
+    let st = par::stream(
+        &inp,
+        body,
+        flen - 8,
+        threads,
+        chunk,
+        cap,
+        std::io::BufWriter::with_capacity(1 << 20, out),
+    )
+    .unwrap();
     assert_eq!(st.crc, want_crc, "CRC-32 mismatch");
     assert_eq!(st.bytes as u32, want_len, "ISIZE mismatch");
     if std::env::var_os("UPIGZ_STATS").is_some() {
@@ -530,19 +600,34 @@ fn spectest(a: &[String]) {
         // sequential: block starts and output offsets
         let mut sp = spec::Spec::default();
         let full = sp.run(&inp, 0, usize::MAX, u64::MAX).unwrap();
-        assert!(full.out[spec::WINDOW..].iter().zip(&data).all(|(&x, &y)| x == y as u16));
+        assert!(full.out[spec::WINDOW..]
+            .iter()
+            .zip(&data)
+            .all(|(&x, &y)| x == y as u16));
         let mut fd = fast::Decoder::default();
         for &(bp, outpos) in &full.blocks {
             // true window: the 32 KiB before outpos (positions before the stream start are absent)
             let win_true = |w: usize| -> Option<u8> {
                 let back = spec::WINDOW - w; // bytes back from outpos
-                if back <= outpos { Some(data[outpos - back]) } else { None }
+                if back <= outpos {
+                    Some(data[outpos - back])
+                } else {
+                    None
+                }
             };
             let check = |sym: &[u16], who: &str| {
-                assert_eq!(sym.len(), data.len() - outpos, "case {case} {who}: length at block {bp}");
+                assert_eq!(
+                    sym.len(),
+                    data.len() - outpos,
+                    "case {case} {who}: length at block {bp}"
+                );
                 for (i, &v) in sym.iter().enumerate() {
-                    let got = if v < 256 { v as u8 } else {
-                        win_true((v - 256) as usize).unwrap_or_else(|| panic!("case {case} {who}: marker into absent history at block {bp}"))
+                    let got = if v < 256 {
+                        v as u8
+                    } else {
+                        win_true((v - 256) as usize).unwrap_or_else(|| {
+                            panic!("case {case} {who}: marker into absent history at block {bp}")
+                        })
                     };
                     assert_eq!(got, data[outpos + i], "case {case} {who}: block {bp} +{i}");
                 }
@@ -551,7 +636,9 @@ fn spectest(a: &[String]) {
             assert!(r.finished);
             check(&r.out[spec::WINDOW..], "spec");
             let mut buf: Vec<u16> = (0..spec::WINDOW as u16).map(|i| 256 + i).collect();
-            let o = fd.run::<u16>(&inp, bp, &mut buf, spec::WINDOW, u64::MAX).unwrap();
+            let o = fd
+                .run::<u16>(&inp, bp, &mut buf, spec::WINDOW, u64::MAX)
+                .unwrap();
             assert!(o.finished);
             check(&buf[spec::WINDOW..o.o], "fast-u16");
             checked += 1;
@@ -595,16 +682,26 @@ fn main() {
         outs.iter_mut().for_each(|o| o.fill(0xA5));
         run(a, &inp, &ms, &mut outs);
         for (m, o) in ms.iter().zip(&outs) {
-            assert!(o[..m.raw] == reference[m.out_off..m.out_off + m.raw], "{n}: output differs");
+            assert!(
+                o[..m.raw] == reference[m.out_off..m.out_off + m.raw],
+                "{n}: output differs"
+            );
         }
     }
-    eprintln!("{path}: {} members, {total} bytes, all {} arms byte-exact", ms.len(), arms.len());
+    eprintln!(
+        "{path}: {} members, {total} bytes, all {} arms byte-exact",
+        ms.len(),
+        arms.len()
+    );
     #[cfg(feature = "census")]
     {
         use inflate::census::*;
         let (l, m, mb) = (get(&LIT), get(&MATCH), get(&MATCH_BYTES));
         let sy = l + m;
-        let h: Vec<String> = LEN_HIST.iter().map(|c| format!("{:.3}", get(c) as f64 / m as f64)).collect();
+        let h: Vec<String> = LEN_HIST
+            .iter()
+            .map(|c| format!("{:.3}", get(c) as f64 / m as f64))
+            .collect();
         println!(
             "census {path}: symbols/byte {:.4} literal-share {:.3} mean-match-len {:.2} match-bytes-share {:.3} dist<8 {:.3} dist=1 {:.3} len-hist[3-4,5-8,9-16,17-32,33-64,65+] {}",
             sy as f64 / (l + mb) as f64, l as f64 / sy as f64, mb as f64 / m as f64, mb as f64 / (l + mb) as f64,
@@ -613,7 +710,12 @@ fn main() {
         if names.contains(&"fast") {
             use fast::prof;
             let t = std::time::Instant::now();
-            run(&mut arms.iter_mut().find(|a| a.0 == "fast").unwrap().1, &inp, &ms, &mut outs);
+            run(
+                &mut arms.iter_mut().find(|a| a.0 == "fast").unwrap().1,
+                &inp,
+                &ms,
+                &mut outs,
+            );
             let all = t.elapsed().as_nanos() as f64;
             // the validation pass above also ran: halve the counters' two passes
             println!(

@@ -36,7 +36,7 @@ line-length = 100
 # research/ holds research agents' scratch code and evidence: not linted, so lint never gates
 # a research recipe; anything promoted out of it is linted as usual. scripts/ and runs/ are the
 # research host's journal harnesses, kept as they were run.
-extend-exclude = ["research", "scripts", "runs"]
+extend-exclude = ["research", "runs", "scripts"]
 
 [tool.ruff.lint]
 ignore = ["D401"]

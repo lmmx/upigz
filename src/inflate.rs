@@ -47,17 +47,20 @@ fn e_val(e: u32) -> u32 {
 }
 
 const LEN_BASE: [u16; 29] = [
-    3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115,
-    131, 163, 195, 227, 258,
+    3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131,
+    163, 195, 227, 258,
 ];
-const LEN_EXTRA: [u8; 29] =
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+const LEN_EXTRA: [u8; 29] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
+];
 const DIST_BASE: [u16; 30] = [
     1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537,
     2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
 ];
-const DIST_EXTRA: [u8; 30] =
-    [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+const DIST_EXTRA: [u8; 30] = [
+    0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
+    13,
+];
 
 fn lit_entry(sym: usize, len: u32) -> u32 {
     match sym {
@@ -102,7 +105,12 @@ pub mod census {
 
 /// Build a canonical-Huffman decode table with `bits` main bits and subtables.
 /// Unused slots (an incomplete code) hold INVALID. Returns an error if over-subscribed.
-fn build(table: &mut [u32], lens: &[u8], bits: u32, entry: fn(usize, u32) -> u32) -> Result<(), Err> {
+fn build(
+    table: &mut [u32],
+    lens: &[u8],
+    bits: u32,
+    entry: fn(usize, u32) -> u32,
+) -> Result<(), Err> {
     let mut count = [0u16; 16];
     for &l in lens {
         count[l as usize] += 1;
@@ -234,7 +242,10 @@ impl<'a> Stream<'a> {
 
     #[inline(always)]
     fn refill(&mut self) -> Result<(), Err> {
-        let w = self.inp.get(self.pos..self.pos + 8).ok_or("input overrun")?;
+        let w = self
+            .inp
+            .get(self.pos..self.pos + 8)
+            .ok_or("input overrun")?;
         self.bb |= u64::from_le_bytes(w.try_into().unwrap()) << self.bc;
         self.pos += (7 - (self.bc >> 3)) as usize;
         self.bc |= 56;
@@ -303,7 +314,9 @@ impl<'a> Stream<'a> {
                 let hlit = self.bits(5)? as usize + 257;
                 let hdist = self.bits(5)? as usize + 1;
                 let hclen = self.bits(4)? as usize + 4;
-                const ORD: [usize; 19] = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+                const ORD: [usize; 19] = [
+                    16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+                ];
                 let mut pl = [0u8; 19];
                 for &i in &ORD[..hclen] {
                     pl[i] = self.bits(3)? as u8;
@@ -377,7 +390,8 @@ fn step(
 
     let mut e = lit[(*bb & ((1 << LB) - 1)) as usize];
     if e_kind(e) == K_SUB {
-        e = lit[(e_val(e) as usize + ((*bb >> LB) & ((1 << e_extra(e)) - 1)) as usize).min(LIT_ENOUGH - 1)];
+        e = lit[(e_val(e) as usize + ((*bb >> LB) & ((1 << e_extra(e)) - 1)) as usize)
+            .min(LIT_ENOUGH - 1)];
     }
     let cl = e_len(e);
     match e_kind(e) {
@@ -423,7 +437,14 @@ fn step(
                 add(&MATCH_BYTES, len as u64);
                 add(&DIST_LT8, (dst < 8) as u64);
                 add(&DIST1, (dst == 1) as u64);
-                let b = match len { 0..=4 => 0, 5..=8 => 1, 9..=16 => 2, 17..=32 => 3, 33..=64 => 4, _ => 5 };
+                let b = match len {
+                    0..=4 => 0,
+                    5..=8 => 1,
+                    9..=16 => 2,
+                    17..=32 => 3,
+                    33..=64 => 4,
+                    _ => 5,
+                };
                 add(&LEN_HIST[b], 1);
             }
             let mut s = *o - dst;
@@ -574,7 +595,17 @@ fn hot_rolled<const N: usize, const B: usize>(ss: &mut [Stream<'_>]) -> Result<(
         'outer: loop {
             for i in 0..N {
                 for _ in 0..B {
-                    match step(inp, lits[i], dists[i], outs[i], limit[i], &mut pos[i], &mut bb[i], &mut bc[i], &mut o[i]) {
+                    match step(
+                        inp,
+                        lits[i],
+                        dists[i],
+                        outs[i],
+                        limit[i],
+                        &mut pos[i],
+                        &mut bb[i],
+                        &mut bc[i],
+                        &mut o[i],
+                    ) {
                         Ok(false) => {}
                         Ok(true) => {
                             ended[i] = true;

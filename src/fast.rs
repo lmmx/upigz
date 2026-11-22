@@ -85,17 +85,20 @@ pub(crate) const EOB: u32 = 1 << 13;
 pub(crate) const INVALID: u32 = EXC;
 
 const LEN_BASE: [u16; 29] = [
-    3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115,
-    131, 163, 195, 227, 258,
+    3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131,
+    163, 195, 227, 258,
 ];
-const LEN_EXTRA: [u8; 29] =
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+const LEN_EXTRA: [u8; 29] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
+];
 const DIST_BASE: [u16; 30] = [
     1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537,
     2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
 ];
-const DIST_EXTRA: [u8; 30] =
-    [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+const DIST_EXTRA: [u8; 30] = [
+    0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13,
+    13,
+];
 
 /// `l`: the code length to consume from this (sub)table's index position.
 #[inline(always)]
@@ -121,7 +124,12 @@ pub(crate) fn dist_entry(sym: usize, l: u32) -> u32 {
 
 /// Canonical Huffman table with `bits` main bits. Subtable entries consume only the bits past
 /// the main index (the pointer entry consumes the main bits first).
-fn build_slow<F: Fn(usize, u32) -> u32>(table: &mut [u32], lens: &[u8], bits: u32, entry: F) -> Result<(), Err> {
+fn build_slow<F: Fn(usize, u32) -> u32>(
+    table: &mut [u32],
+    lens: &[u8],
+    bits: u32,
+    entry: F,
+) -> Result<(), Err> {
     let mut count = [0u16; 16];
     for &l in lens {
         count[l as usize] += 1;
@@ -200,7 +208,12 @@ fn build_slow<F: Fn(usize, u32) -> u32>(table: &mut [u32], lens: &[u8], bits: u3
 /// by contiguous copies; no clearing, since a complete code covers every slot), and the
 /// clearing builder for incomplete codes.
 #[inline(always)]
-pub(crate) fn build<F: Fn(usize, u32) -> u32 + Copy>(table: &mut [u32], lens: &[u8], bits: u32, entry: F) -> Result<(), Err> {
+pub(crate) fn build<F: Fn(usize, u32) -> u32 + Copy>(
+    table: &mut [u32],
+    lens: &[u8],
+    bits: u32,
+    entry: F,
+) -> Result<(), Err> {
     let mut count = [0u16; 16];
     for &l in lens {
         count[l as usize] += 1;
@@ -416,7 +429,10 @@ pub struct Decoder {
 
 impl Default for Decoder {
     fn default() -> Self {
-        Decoder { lit: Box::new([INVALID; LIT_ENOUGH]), dist: Box::new([INVALID; DIST_ENOUGH]) }
+        Decoder {
+            lit: Box::new([INVALID; LIT_ENOUGH]),
+            dist: Box::new([INVALID; DIST_ENOUGH]),
+        }
     }
 }
 
@@ -429,7 +445,12 @@ struct Bits<'a> {
 
 impl Bits<'_> {
     fn at(inp: &[u8], bitpos: u64) -> Result<Bits<'_>, Err> {
-        let mut b = Bits { inp, pos: (bitpos / 8) as usize, bb: 0, bc: 0 };
+        let mut b = Bits {
+            inp,
+            pos: (bitpos / 8) as usize,
+            bb: 0,
+            bc: 0,
+        };
         let skip = (bitpos % 8) as u32;
         if skip != 0 {
             b.take(skip)?;
@@ -438,7 +459,10 @@ impl Bits<'_> {
     }
     #[inline(always)]
     fn refill(&mut self) -> Result<(), Err> {
-        let w = self.inp.get(self.pos..self.pos + 8).ok_or("input overrun")?;
+        let w = self
+            .inp
+            .get(self.pos..self.pos + 8)
+            .ok_or("input overrun")?;
         self.bb |= u64::from_le_bytes(w.try_into().unwrap()) << self.bc;
         self.pos += (7 - ((self.bc >> 3) & 7)) as usize;
         self.bc |= 56;
@@ -496,17 +520,28 @@ enum Body {
 
 /// Where a run stopped.
 pub struct Out {
-    pub o: usize,           // output cursor
-    pub end_bitpos: u64,    // bit position of the next unread bit
-    pub finished: bool,     // the final block ended (else: stopped at a block start >= stop)
-    pub blocks: usize,      // blocks decoded
+    pub o: usize,        // output cursor
+    pub end_bitpos: u64, // bit position of the next unread bit
+    pub finished: bool,  // the final block ended (else: stopped at a block start >= stop)
+    pub blocks: usize,   // blocks decoded
 }
 
 impl Decoder {
     /// Decode the DEFLATE stream starting at `inp[start]` into `out[..limit]` (`out` has at
     /// least 16 spare bytes past `limit`, unused). Returns (bytes written, end byte position).
-    pub fn decode(&mut self, inp: &[u8], start: usize, out: &mut [u8], limit: usize) -> Result<(usize, usize), Err> {
-        let mut b = Bits { inp, pos: start, bb: 0, bc: 0 };
+    pub fn decode(
+        &mut self,
+        inp: &[u8],
+        start: usize,
+        out: &mut [u8],
+        limit: usize,
+    ) -> Result<(usize, usize), Err> {
+        let mut b = Bits {
+            inp,
+            pos: start,
+            bb: 0,
+            bc: 0,
+        };
         let mut o = 0usize;
         loop {
             let last = b.take(1)? == 1;
@@ -530,14 +565,26 @@ impl Decoder {
     /// Decode from bit position `bitpos` (a block start) into a growable buffer, appending at
     /// `o0` (`out[..o0]` is history: a known window, or window markers). Stops when the final
     /// block ends or when a block would start at or past `stop_bitpos`.
-    pub fn run<T: Sym>(&mut self, inp: &[u8], bitpos: u64, out: &mut Vec<T>, o0: usize, stop_bitpos: u64) -> Result<Out, Err> {
+    pub fn run<T: Sym>(
+        &mut self,
+        inp: &[u8],
+        bitpos: u64,
+        out: &mut Vec<T>,
+        o0: usize,
+        stop_bitpos: u64,
+    ) -> Result<Out, Err> {
         let mut b = Bits::at(inp, bitpos)?;
         let mut o = o0;
         let mut blocks = 0;
         loop {
             let bp = b.bitpos();
             if bp >= stop_bitpos {
-                return Ok(Out { o, end_bitpos: bp, finished: false, blocks });
+                return Ok(Out {
+                    o,
+                    end_bitpos: bp,
+                    finished: false,
+                    blocks,
+                });
             }
             blocks += 1;
             let last = b.take(1)? == 1;
@@ -566,7 +613,12 @@ impl Decoder {
             }
             if last {
                 b.align();
-                return Ok(Out { o, end_bitpos: b.bitpos(), finished: true, blocks });
+                return Ok(Out {
+                    o,
+                    end_bitpos: b.bitpos(),
+                    finished: true,
+                    blocks,
+                });
             }
         }
     }
@@ -574,12 +626,22 @@ impl Decoder {
     /// Whether a dynamic block header parses at `bitpos` with complete codes (the block
     /// finder's full check). Builds this decoder's tables as a side effect.
     pub fn header_ok(&mut self, inp: &[u8], bitpos: u64) -> bool {
-        let Ok(mut b) = Bits::at(inp, bitpos) else { return false };
-        let (Ok(0), Ok(2)) = (b.take(1), b.take(2)) else { return false };
+        let Ok(mut b) = Bits::at(inp, bitpos) else {
+            return false;
+        };
+        let (Ok(0), Ok(2)) = (b.take(1), b.take(2)) else {
+            return false;
+        };
         self.dynamic_header_strict(&mut b).is_ok()
     }
 
-    fn stored<T: Sym>(&mut self, b: &mut Bits<'_>, out: &mut [T], o: usize, limit: usize) -> Result<usize, Err> {
+    fn stored<T: Sym>(
+        &mut self,
+        b: &mut Bits<'_>,
+        out: &mut [T],
+        o: usize,
+        limit: usize,
+    ) -> Result<usize, Err> {
         b.align();
         let inp = b.inp;
         let p = b.byte_pos();
@@ -595,7 +657,12 @@ impl Decoder {
         for (d, &x) in out[o..o + len].iter_mut().zip(src) {
             *d = T::lit(x);
         }
-        *b = Bits { inp, pos: p + 4 + len, bb: 0, bc: 0 };
+        *b = Bits {
+            inp,
+            pos: p + 4 + len,
+            bb: 0,
+            bc: 0,
+        };
         Ok(o + len)
     }
 
@@ -630,7 +697,9 @@ impl Decoder {
         let hlit = b.take(5)? as usize + 257;
         let hdist = b.take(5)? as usize + 1;
         let hclen = b.take(4)? as usize + 4;
-        const ORD: [usize; 19] = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+        const ORD: [usize; 19] = [
+            16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+        ];
         let mut pl = [0u8; 19];
         for &i in &ORD[..hclen] {
             pl[i] = b.take(3)? as u8;
@@ -709,7 +778,9 @@ impl Decoder {
         if hlit > 286 || hdist > 30 {
             return Err("too many codes");
         }
-        const ORD: [usize; 19] = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+        const ORD: [usize; 19] = [
+            16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+        ];
         let mut pl = [0u8; 19];
         for &i in &ORD[..hclen] {
             pl[i] = b.take(3)? as u8;
@@ -786,7 +857,14 @@ impl Decoder {
 
     /// One block body: the fast loop while margins hold, then the checked loop.
     #[inline(never)]
-    fn body<T: Sym>(&self, b: &mut Bits<'_>, out: &mut [T], mut o: usize, limit: usize, grow: bool) -> Result<Body, Err> {
+    fn body<T: Sym>(
+        &self,
+        b: &mut Bits<'_>,
+        out: &mut [T],
+        mut o: usize,
+        limit: usize,
+        grow: bool,
+    ) -> Result<Body, Err> {
         let lit: &[u32; LIT_ENOUGH] = &self.lit;
         let dist: &[u32; DIST_ENOUGH] = &self.dist;
         let inp = b.inp;
@@ -865,7 +943,10 @@ impl Decoder {
                     return Err("invalid literal/length code");
                 }
                 // main bits were consumed with the pointer; now the subtable entry
-                e = get!(lit, ((e >> 16) & 0x7fff) as usize + (bb & ((1 << ((e >> 8) & 0xf)) - 1)) as usize);
+                e = get!(
+                    lit,
+                    ((e >> 16) & 0x7fff) as usize + (bb & ((1 << ((e >> 8) & 0xf)) - 1)) as usize
+                );
                 saved = bb;
                 consume!(e);
                 if e & LIT != 0 {
@@ -895,7 +976,10 @@ impl Decoder {
                     refill!();
                 }
                 consume!(DB);
-                d = get!(dist, ((d >> 16) & 0x7fff) as usize + (bb & ((1 << ((d >> 8) & 0xf)) - 1)) as usize);
+                d = get!(
+                    dist,
+                    ((d >> 16) & 0x7fff) as usize + (bb & ((1 << ((d >> 8) & 0xf)) - 1)) as usize
+                );
                 if d & EXC != 0 {
                     return Err("invalid distance code");
                 }
@@ -986,7 +1070,8 @@ impl Decoder {
             if e & SUB != 0 {
                 bb >>= e & 0x3f;
                 bc -= e & 0xff;
-                e = lit[((e >> 16) & 0x7fff) as usize + (bb & ((1 << ((e >> 8) & 0xf)) - 1)) as usize];
+                e = lit
+                    [((e >> 16) & 0x7fff) as usize + (bb & ((1 << ((e >> 8) & 0xf)) - 1)) as usize];
             }
             if e & LIT != 0 {
                 if o >= limit {
@@ -1014,7 +1099,8 @@ impl Decoder {
             if d & SUB != 0 {
                 bb >>= d & 0x3f;
                 bc -= d & 0xff;
-                d = dist[((d >> 16) & 0x7fff) as usize + (bb & ((1 << ((d >> 8) & 0xf)) - 1)) as usize];
+                d = dist
+                    [((d >> 16) & 0x7fff) as usize + (bb & ((1 << ((d >> 8) & 0xf)) - 1)) as usize];
             }
             if d & EXC != 0 {
                 return Err("invalid distance code");
