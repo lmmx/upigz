@@ -37,6 +37,14 @@ On the 1.34 GB single-member Wikidata file (the real dump's head, recompressed w
 | rapidgzip 0.16.2 -P4 (default / `--verify`) | 0.80 / 0.82 | 1.000 / 0.980 |
 | igzip (ISA-L 2.31), 1 thread | 0.81 | 1.003 |
 
+<figure class="bf-fig">
+--8<-- "docs/figures/parallel.svg"
+<figcaption>The same race as a chart, generated from <code>runs/race-big4.txt</code> by
+<code>docs/scripts/figures.py</code> (the numbers are in
+<a href="../assets/data/results.json"><code>results.json</code></a>). Six paired rounds; the
+time ratio is the geometric mean of per-round ratios, with a 95% interval.</figcaption>
+</figure>
+
 rapidgzip scales poorly on this host (its P2 is slower than its sequential P1 path), so the
 i9's 10 cores decide the real ranking.
 
@@ -61,6 +69,12 @@ Time vs libdeflate 1.26.1; GB/s for libdeflate. From [the second entry](../journ
 | ISA-L 2.31 | 1.172 | 1.138 | 1.149 |
 | zlib-rs 0.6.8 | 1.366 | 1.410 | 1.391 |
 
+<figure class="bf-fig">
+--8<-- "docs/figures/single-thread.svg"
+<figcaption>The single-thread table as a chart, generated from <code>runs/sota-*.txt</code>.
+Eleven paired rounds per corpus; the dashed line is libdeflate, whiskers are 95% intervals.</figcaption>
+</figure>
+
 What moved the kernel, step by step (unchecked-build time vs libdeflate, on Wikidata / source /
 binary):
 
@@ -72,6 +86,22 @@ binary):
 | **libdeflate's literal→match fallthrough** (no refill on the transition) | **1.21 / 1.13 / 1.15** |
 | **table build: libdeflate's doubling method for complete codes** | **1.07 / 1.09 / 1.09** |
 | generic (inlined) entry constructors, 4 precode symbols per refill | 1.06 / 1.08 / 1.14 (noisy run) |
+
+## What the i9 run will decide
+
+Everything above is from a 4-vCPU VM, where rapidgzip scales poorly. The i9-10900K workstation
+(10 cores, 20 threads, dual-channel DDR4) decides, through a recipe whose decision rule is
+registered before its data. The first recipe races upigz against rapidgzip at the same thread
+counts, and against igzip, on the single-member Wikidata file. It will settle two questions:
+
+- **Does the lead hold with more cores?** On the VM upigz -P4 took 0.677× rapidgzip -P4's time.
+  At 8 and 10 threads both decoders are expected to approach the memory bandwidth limit, and
+  rapidgzip's design writes and rereads 16-bit symbols for every output byte.
+- **Where does upigz's own scaling stop?** The thread sweep shows the knee, and with it whether
+  the next lever is the 16-bit pass-1 kernel or memory traffic: the re-decode bet in the
+  [research charter's frontier](https://github.com/lmmx/upigz/blob/master/docs/team/research-charter/FRONTIER.md).
+
+The recipe and its rule will be linked here once registered.
 
 ## Earlier: the first kernel and the field
 
