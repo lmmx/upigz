@@ -54,6 +54,7 @@ in a registration file, which this scratch setup doesn't have yet.
   Each comes as a single member at gzip -6 and -9, as 1 MiB members (level 6, 64 per file),
   and as BGZF (65 280 raw bytes per member, about 1 029 members). Literal-only controls use
   zlib's `Z_HUFFMAN_ONLY` and `Z_RLE` strategies.
+
 - **Harness** (`src/main.rs`): one binary, pinned to one core (`taskset -c 2`). Each round
   runs every arm once in shuffled order; round 0 is dropped. The ratio is the geometric mean
   of per-round time ratios, with a t interval on the log scale (`scripts/ratio.py`).
@@ -198,6 +199,7 @@ so it says nothing about the i9.
    - the cost of the marker-resolution pass.
 
    Measure it against rapidgzip on a multi-GB slice of the dump, not 64 MiB.
+
 4. **Memory traffic is visible already:** first-touch faults on large output buffers cost
    libdeflate-gunzip about 40% of its CLI throughput here. Reuse owned buffers, size the ring
    of ready bytes, and fuse CRC into the copy or resolve pass.

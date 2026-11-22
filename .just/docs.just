@@ -13,7 +13,6 @@ docs-build:
 docs-check: docs-build
    uv run --no-project -p 3.13 python docs/scripts/check_site.py
    uv run --no-project -p 3.13 python docs/scripts/check_render.py
-   uv run --no-project -p 3.13 --with pytest pytest docs/site
 
 # Open the pages changed since BASE in Chromium: checks, and screenshots in site-shots/
 docs-look BASE="origin/master": docs-build

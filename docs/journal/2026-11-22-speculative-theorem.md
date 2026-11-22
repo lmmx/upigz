@@ -1,6 +1,7 @@
 # Speculative decode: the theorem, checked before any proof (2026-11-22)
 
 Sources:
+
 - the lean-zip inventory (`kim-em/lean-zip` @ 2f7a63f3, read only);
 - `spectest` in `src/main.rs`, a programmatic counterexample hunt.
 
@@ -63,6 +64,7 @@ by symbol on 48 real-corpus chunks of 16 MiB.
 ## The proof opportunity in lean-zip (estimate from the inventory: medium, about 500–1,500 lines)
 
 What it reuses:
+
 - **The spec, and two-way equivalence to the native decoder.** `inflateLoop_correct` /
   `inflateLoop_complete` hold from any bit position with any prior output, and
   `inflate_ok_iff_decodesTo` covers arbitrary streams.
@@ -70,6 +72,7 @@ What it reuses:
   `decode_go_suffix` and `decode_go_acc_prefix`.
 
 What has to be new:
+
 - a version of `resolveLZ77` and `decode.go` that works over any symbol alphabet;
 - a lemma that resolution commutes with substituting the true window;
 - a decoder-side `dist ≤ 32768` bound;
@@ -78,6 +81,7 @@ What has to be new:
 - (a)5 and the chaining lemma.
 
 Obstacles:
+
 - everything is hard-wired to `UInt8`, so the generic alphabet should be a copy, not a
   refactor;
 - `alignToByte` works from the number of bits remaining, so a chunk must be a suffix of the
