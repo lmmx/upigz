@@ -66,9 +66,9 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/extra.css?v=3ff1550b31a9">
+      <link rel="stylesheet" href="../assets/stylesheets/extra.css?v=bf126cca7533">
     
-      <link rel="stylesheet" href="../assets/stylesheets/blog.css?v=3ff1550b31a9">
+      <link rel="stylesheet" href="../assets/stylesheets/blog.css?v=bf126cca7533">
     
     <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
@@ -383,6 +383,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         Single thread, in memory
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-i9-run-will-decide" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What the i9 run will decide
       </span>
     </span>
   </a>
@@ -736,6 +747,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-the-i9-run-will-decide" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What the i9 run will decide
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#earlier-the-first-kernel-and-the-field" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -845,6 +867,15 @@ BGZF, and a 1.34 GB single-member Wikidata file for the parallel runs.</p>
 </tr>
 </tbody>
 </table>
+<figure class="bf-fig">
+<svg viewBox="0 0 720 264" role="img" aria-label="upigz -P4: 1.21 GB/s, 0.677 of rapidgzip -P4's time; upigz -P3: 0.94 GB/s, 0.864 of rapidgzip -P4's time; rapidgzip -P4: 0.80 GB/s, 1.000 of rapidgzip -P4's time; igzip, 1 thread: 0.81 GB/s, 1.003 of rapidgzip -P4's time; upigz -P2: 0.69 GB/s, 1.220 of rapidgzip -P4's time"><text x="132" y="16" class="bf-tm">GB/s, end to end with CRC (higher is better)</text><text x="720" y="16" class="bf-tm" text-anchor="end">time vs rapidgzip -P4 [95% CI]</text><text x="122" y="45" class="bf-t-strong" text-anchor="end">upigz -P4</text><text x="122" y="59" class="bf-tm" text-anchor="end">1 MiB chunks</text><rect x="132" y="34" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="34" width="345.4" height="16" rx="4" class="bf-green"/><text x="483.4" y="47" class="bf-t">1.21</text><text x="720" y="47" class="bf-t-strong" text-anchor="end">0.677 [0.616, 0.744]</text><text x="122" y="85" class="bf-t-strong" text-anchor="end">upigz -P3</text><text x="122" y="99" class="bf-tm" text-anchor="end">2 MiB chunks</text><rect x="132" y="74" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="74" width="269.4" height="16" rx="4" class="bf-green"/><text x="407.4" y="87" class="bf-t">0.94</text><text x="720" y="87" class="bf-t-strong" text-anchor="end">0.864 [0.810, 0.921]</text><text x="122" y="125" class="bf-t-strong" text-anchor="end">rapidgzip -P4</text><text x="122" y="139" class="bf-tm" text-anchor="end">reference</text><rect x="132" y="114" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="114" width="228.0" height="16" rx="4" class="bf-steel"/><text x="366.0" y="127" class="bf-t">0.80</text><text x="720" y="127" class="bf-t-strong" text-anchor="end">1.000</text><text x="122" y="165" class="bf-t-strong" text-anchor="end">igzip, 1 thread</text><rect x="132" y="154" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="154" width="230.9" height="16" rx="4" class="bf-steel"/><text x="368.9" y="167" class="bf-t">0.81</text><text x="720" y="167" class="bf-t-strong" text-anchor="end">1.003 [0.918, 1.096]</text><text x="122" y="205" class="bf-t-strong" text-anchor="end">upigz -P2</text><text x="122" y="219" class="bf-tm" text-anchor="end">2 MiB chunks</text><rect x="132" y="194" width="400" height="16" rx="4" class="bf-track"/><rect x="132" y="194" width="195.7" height="16" rx="4" class="bf-green"/><text x="333.7" y="207" class="bf-t">0.69</text><text x="720" y="207" class="bf-t-strong" text-anchor="end">1.220 [1.132, 1.314]</text><path d="M132 236H532" class="bf-axis"/><path d="M132.0 236v5" class="bf-axis"/><text x="132.0" y="254" class="bf-tm" text-anchor="middle">0.0</text><path d="M274.9 236v5" class="bf-axis"/><text x="274.9" y="254" class="bf-tm" text-anchor="middle">0.5</text><path d="M417.7 236v5" class="bf-axis"/><text x="417.7" y="254" class="bf-tm" text-anchor="middle">1.0</text></svg>
+
+<figcaption>The same race as a chart, generated from <code>runs/race-big4.txt</code> by
+<code>docs/scripts/figures.py</code> (the numbers are in
+<a href="../assets/data/results.json"><code>results.json</code></a>). Six paired rounds; the
+time ratio is the geometric mean of per-round ratios, with a 95% interval.</figcaption>
+</figure>
+
 <p>rapidgzip scales poorly on this host (its P2 is slower than its sequential P1 path), so the
 i9's 10 cores decide the real ranking.</p>
 <p>How the parallel decoder got there, upigz -P4 against rapidgzip -P4:</p>
@@ -918,6 +949,13 @@ i9's 10 cores decide the real ranking.</p>
 </tr>
 </tbody>
 </table>
+<figure class="bf-fig">
+<svg viewBox="0 0 720 296" role="img" aria-label="Wikidata JSON, upigz kernel: 1.123 [1.066, 1.183]; Wikidata JSON, ISA-L 2.31: 1.172 [1.093, 1.258]; Wikidata JSON, zlib-rs 0.6.8: 1.366 [1.312, 1.423]; source code, upigz kernel: 1.093 [1.065, 1.122]; source code, ISA-L 2.31: 1.138 [1.094, 1.183]; source code, zlib-rs 0.6.8: 1.410 [1.378, 1.443]; binaries, upigz kernel: 1.043 [0.979, 1.112]; binaries, ISA-L 2.31: 1.149 [1.065, 1.240]; binaries, zlib-rs 0.6.8: 1.391 [1.289, 1.502]"><text x="150" y="14" class="bf-tm">time vs libdeflate 1.26.1, one thread, in memory (lower is better; 1.0 = libdeflate)</text><text x="0" y="48" class="bf-ts">Wikidata JSON</text><text x="140" y="48" class="bf-t" text-anchor="end">upigz kernel</text><path d="M282.8 44H376.4" class="bf-whisker"/><circle cx="328.4" cy="44" r="5" class="bf-green"/><text x="720" y="48" class="bf-t-strong" text-anchor="end">1.123</text><text x="140" y="70" class="bf-t" text-anchor="end">ISA-L 2.31</text><path d="M304.4 66H436.4" class="bf-whisker"/><circle cx="367.6" cy="66" r="5" class="bf-steel"/><text x="720" y="70" class="bf-t-strong" text-anchor="end">1.172</text><text x="140" y="92" class="bf-t" text-anchor="end">zlib-rs 0.6.8</text><path d="M479.6 88H568.4" class="bf-whisker"/><circle cx="522.8" cy="88" r="5" class="bf-steel"/><text x="720" y="92" class="bf-t-strong" text-anchor="end">1.366</text><text x="0" y="130" class="bf-ts">source code</text><text x="140" y="130" class="bf-t" text-anchor="end">upigz kernel</text><path d="M282.0 126H327.6" class="bf-whisker"/><circle cx="304.4" cy="126" r="5" class="bf-green"/><text x="720" y="130" class="bf-t-strong" text-anchor="end">1.093</text><text x="140" y="152" class="bf-t" text-anchor="end">ISA-L 2.31</text><path d="M305.2 148H376.4" class="bf-whisker"/><circle cx="340.4" cy="148" r="5" class="bf-steel"/><text x="720" y="152" class="bf-t-strong" text-anchor="end">1.138</text><text x="140" y="174" class="bf-t" text-anchor="end">zlib-rs 0.6.8</text><path d="M532.4 170H584.4" class="bf-whisker"/><circle cx="558.0" cy="170" r="5" class="bf-steel"/><text x="720" y="174" class="bf-t-strong" text-anchor="end">1.410</text><text x="0" y="212" class="bf-ts">binaries</text><text x="140" y="212" class="bf-t" text-anchor="end">upigz kernel</text><path d="M213.2 208H319.6" class="bf-whisker"/><circle cx="264.4" cy="208" r="5" class="bf-green"/><text x="720" y="212" class="bf-t-strong" text-anchor="end">1.043</text><text x="140" y="234" class="bf-t" text-anchor="end">ISA-L 2.31</text><path d="M282.0 230H422.0" class="bf-whisker"/><circle cx="349.2" cy="230" r="5" class="bf-steel"/><text x="720" y="234" class="bf-t-strong" text-anchor="end">1.149</text><text x="140" y="256" class="bf-t" text-anchor="end">zlib-rs 0.6.8</text><path d="M461.2 252H631.6" class="bf-whisker"/><circle cx="542.8" cy="252" r="5" class="bf-steel"/><text x="720" y="256" class="bf-t-strong" text-anchor="end">1.391</text><path d="M230.0 28V268" class="bf-ref"/><path d="M150 272H670" class="bf-axis"/><path d="M230.0 272v5" class="bf-axis"/><text x="230.0" y="290" class="bf-tm" text-anchor="middle">1.0</text><path d="M310.0 272v5" class="bf-axis"/><text x="310.0" y="290" class="bf-tm" text-anchor="middle">1.1</text><path d="M390.0 272v5" class="bf-axis"/><text x="390.0" y="290" class="bf-tm" text-anchor="middle">1.2</text><path d="M470.0 272v5" class="bf-axis"/><text x="470.0" y="290" class="bf-tm" text-anchor="middle">1.3</text><path d="M550.0 272v5" class="bf-axis"/><text x="550.0" y="290" class="bf-tm" text-anchor="middle">1.4</text><path d="M630.0 272v5" class="bf-axis"/><text x="630.0" y="290" class="bf-tm" text-anchor="middle">1.5</text></svg>
+
+<figcaption>The single-thread table as a chart, generated from <code>runs/sota-*.txt</code>.
+Eleven paired rounds per corpus; the dashed line is libdeflate, whiskers are 95% intervals.</figcaption>
+</figure>
+
 <p>What moved the kernel, step by step (unchecked-build time vs libdeflate, on Wikidata / source /
 binary):</p>
 <table>
@@ -954,6 +992,20 @@ binary):</p>
 </tr>
 </tbody>
 </table>
+<h2 id="what-the-i9-run-will-decide">What the i9 run will decide<a class="headerlink" href="#what-the-i9-run-will-decide" title="Permanent link">&para;</a></h2>
+<p>Everything above is from a 4-vCPU VM, where rapidgzip scales poorly. The i9-10900K workstation
+(10 cores, 20 threads, dual-channel DDR4) decides, through a recipe whose decision rule is
+registered before its data. The first recipe races upigz against rapidgzip at the same thread
+counts, and against igzip, on the single-member Wikidata file. It will settle two questions:</p>
+<ul>
+<li><strong>Does the lead hold with more cores?</strong> On the VM upigz -P4 took 0.677× rapidgzip -P4's time.
+  At 8 and 10 threads both decoders are expected to approach the memory bandwidth limit, and
+  rapidgzip's design writes and rereads 16-bit symbols for every output byte.</li>
+<li><strong>Where does upigz's own scaling stop?</strong> The thread sweep shows the knee, and with it whether
+  the next lever is the 16-bit pass-1 kernel or memory traffic: the re-decode bet in the
+  <a href="https://github.com/lmmx/upigz/blob/master/docs/team/research-charter/FRONTIER.md">research charter's frontier</a>.</li>
+</ul>
+<p>The recipe and its rule will be linked here once registered.</p>
 <h2 id="earlier-the-first-kernel-and-the-field">Earlier: the first kernel and the field<a class="headerlink" href="#earlier-the-first-kernel-and-the-field" title="Permanent link">&para;</a></h2>
 <p>These are from <a href="../journal/interleaved-inflate/">the first entry</a>, before the kernel above: <code>ours-k1</code> is the first probe decoder.</p>
 <p>In memory (raw DEFLATE, time vs libdeflate; GB/s for libdeflate):</p>
