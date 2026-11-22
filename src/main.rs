@@ -460,8 +460,102 @@ fn zcat_mode(a: &[String]) {
     }
 }
 
+/// spectest <cases>: counterexample hunt for "speculative decode from a block start with a
+/// symbolic window, then resolution against the true window, equals the sequential output's
+/// suffix". Random streams (levels 0..=10 via miniz_oxide: stored, fixed and dynamic blocks;
+/// random, text-like, run-heavy and overlap-heavy data); every block start; both the
+/// reference-style decoder (spec.rs) and the production u16 kernel (fast.rs).
+fn spectest(a: &[String]) {
+    let cases: usize = a[2].parse().unwrap();
+    let mut seed = 0x9E3779B97F4A7C15u64;
+    let mut rnd = move || {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        seed
+    };
+    let (mut checked, mut short_hist) = (0usize, 0usize);
+    for case in 0..cases {
+        let n = 1 + (rnd() % 300_000) as usize;
+        let kind = rnd() % 4;
+        let alpha = 2 + rnd() % 40;
+        let mut data = Vec::with_capacity(n);
+        while data.len() < n {
+            match kind {
+                0 => data.push(rnd() as u8),
+                1 => data.push(b'a' + (rnd() % alpha) as u8),
+                2 => {
+                    let b = rnd() as u8;
+                    let r = 1 + rnd() % 300;
+                    for _ in 0..r {
+                        data.push(b);
+                    }
+                }
+                _ => {
+                    // overlap-heavy: short periodic patterns and long-distance repeats
+                    let p = 1 + (rnd() % 12) as usize;
+                    let start = data.len().saturating_sub((rnd() % 40000) as usize);
+                    let r = 3 + (rnd() % 500) as usize;
+                    if data.len() > p && rnd() % 2 == 0 {
+                        for _ in 0..r {
+                            let v = data[data.len() - p];
+                            data.push(v);
+                        }
+                    } else if start < data.len() {
+                        for i in 0..r {
+                            let v = data[start + i % (data.len() - start)];
+                            data.push(v);
+                        }
+                    } else {
+                        data.push(rnd() as u8);
+                    }
+                }
+            }
+        }
+        data.truncate(n);
+        let level = (rnd() % 11) as u8;
+        let comp = miniz_oxide::deflate::compress_to_vec(&data, level);
+        let mut inp = comp.clone();
+        inp.resize(comp.len() + IN_PAD, 0);
+        // sequential: block starts and output offsets
+        let mut sp = spec::Spec::default();
+        let full = sp.run(&inp, 0, usize::MAX, u64::MAX).unwrap();
+        assert!(full.out[spec::WINDOW..].iter().zip(&data).all(|(&x, &y)| x == y as u16));
+        let mut fd = fast::Decoder::default();
+        for &(bp, outpos) in &full.blocks {
+            // true window: the 32 KiB before outpos (positions before the stream start are absent)
+            let win_true = |w: usize| -> Option<u8> {
+                let back = spec::WINDOW - w; // bytes back from outpos
+                if back <= outpos { Some(data[outpos - back]) } else { None }
+            };
+            let check = |sym: &[u16], who: &str| {
+                assert_eq!(sym.len(), data.len() - outpos, "case {case} {who}: length at block {bp}");
+                for (i, &v) in sym.iter().enumerate() {
+                    let got = if v < 256 { v as u8 } else {
+                        win_true((v - 256) as usize).unwrap_or_else(|| panic!("case {case} {who}: marker into absent history at block {bp}"))
+                    };
+                    assert_eq!(got, data[outpos + i], "case {case} {who}: block {bp} +{i}");
+                }
+            };
+            let r = sp.run(&inp, bp, usize::MAX, u64::MAX).unwrap();
+            assert!(r.finished);
+            check(&r.out[spec::WINDOW..], "spec");
+            let mut buf: Vec<u16> = (0..spec::WINDOW as u16).map(|i| 256 + i).collect();
+            let o = fd.run::<u16>(&inp, bp, &mut buf, spec::WINDOW, u64::MAX).unwrap();
+            assert!(o.finished);
+            check(&buf[spec::WINDOW..o.o], "fast-u16");
+            checked += 1;
+            short_hist += (outpos < spec::WINDOW) as usize;
+        }
+    }
+    println!("spectest: {cases} streams, {checked} block starts checked (both decoders), {short_hist} with history shorter than 32 KiB; no counterexample");
+}
+
 fn main() {
     let a: Vec<String> = std::env::args().collect();
+    if a[1] == "spectest" {
+        return spectest(&a);
+    }
     if a[1] == "zcat" {
         return zcat_mode(&a);
     }
