@@ -36,7 +36,7 @@ fails on both sides alike, since the equation holds between `Option`s.
 ## Effort
 
 The plan estimated 500–1,500 lines of Lean for the whole of obligation (a). This core took
-about 150 lines and one evening's iterations. The main obstacle was Lean trying to reduce the
+about 180 lines, comments included, and a handful of compile iterations. The main obstacle was Lean trying to reduce the
 literal 32,768. Proving everything for a window of arbitrary size `n`, and instantiating at
 32,768 only in the final statement, removed it.
 
